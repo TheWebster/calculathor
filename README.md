@@ -18,3 +18,5 @@ ToDo
 * cross referencing
 * preexecution
 * conditionals (C-style ternary operator)
+* precalculating stacksize
+* error handling
