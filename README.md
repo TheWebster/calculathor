@@ -10,10 +10,10 @@ Done
 * subtracting
 * multiplying
 * dividing
+* brackets
 
 ToDo
 ----
-* brackets
 * other Datatypes (strings)
 * cross referencing
 * preexecution

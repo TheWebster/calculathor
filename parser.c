@@ -15,6 +15,8 @@ typedef struct {
 	char       *token;
 	char       *next;
 	operator_t *last_operator;
+	
+	int        brackets;
 } parser_t;
 
 
@@ -37,6 +39,7 @@ parser_init()
 	parser->last_operator  = NULL;
 	parser->operator_stack = stack_init( PARSER_OPSTACK_CHUNKSIZE);
 	parser->program        = stack_init( PARSER_PROGRAMM_CHUNKSIZE);
+	parser->brackets       = 0;
 	
 	return parser;
 };
@@ -62,6 +65,8 @@ parser_finalize( parser_t *parser)
 };
 
 
+static operator_t op_block;
+
 /*
  * Parses a string, using a given parser structure.
  * 
@@ -84,20 +89,41 @@ parse( parser_t *parser, char *string)
 			return -1;
 		}
 		
+		/* open bracket */
+		if( *parser->token == '(' ) {
+			parser->brackets++;
+			parser->token++;
+			stack_addoperator( parser->operator_stack, &op_block);
+		}
+		
 		number = strtod( parser->token, &endptr);
-		if( *endptr != '\0' ) {
+		if( *endptr == ')' ) {
+			if( parser->brackets == 0 ) {
+				return -1;
+			}
+		}
+		else if( *endptr != '\0' ) {
 			return -1;
 		}
 		
 		stack_addnumber( parser->program, number);
 		
-		if( !stack_isempty( parser->operator_stack) ) {
+		/* close bracket */
+		if( *endptr == ')' ) {
+			while( stack_getoperator( parser->operator_stack) != &op_block )
+				stack_addoperator( parser->program, stack_popoperator( parser->operator_stack));
+			
+			stack_del( parser->operator_stack);
+			parser->brackets--;
+		}
+		
+		if( !stack_isempty( parser->operator_stack) && stack_getoperator( parser->operator_stack) != &op_block ) {
 			if( parser->last_operator != NULL ) {
 				if( parser->last_operator->precedence < stack_getoperator( parser->operator_stack)->precedence )
 					goto skip_flush;
 			}
-			
-			while( !stack_isempty( parser->operator_stack) )
+			// flush operator stack
+			while( !stack_isempty( parser->operator_stack) && stack_getoperator( parser->operator_stack) != &op_block )
 				stack_addoperator( parser->program, stack_popoperator( parser->operator_stack));
 		}
 	  skip_flush:
@@ -108,6 +134,10 @@ parse( parser_t *parser, char *string)
 		stack_addoperator( parser->operator_stack, parser->last_operator);
 		
 		parser->token = parser->next;
+	}
+	
+	if( parser->brackets > 0 ) {
+		return -1;
 	}
 	
 	return 0;
