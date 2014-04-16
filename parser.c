@@ -3,9 +3,9 @@
 #include <stdlib.h>
 
 #include "parser.h"
+#include "parse_error.h"
 #include "stack.h"
 #include "op.h"
-#include "error.h"
 
 
 typedef struct {
@@ -65,6 +65,10 @@ parser_finalize( parser_t *parser)
 };
 
 
+/*
+ * Dummy operator to stop flushing the operator stack.
+ * Uninitialized, only use pointer.
+ */
 static operator_t op_block;
 
 /*
@@ -86,6 +90,7 @@ parse( parser_t *parser, char *string)
 		
 		
 		if( *parser->next == '\0' ) {
+			parse_set_error( "Expected expression before '%s'.", parser->last_operator->string);
 			return -1;
 		}
 		
@@ -99,10 +104,12 @@ parse( parser_t *parser, char *string)
 		number = strtod( parser->token, &endptr);
 		if( *endptr == ')' ) {
 			if( parser->brackets == 0 ) {
+				parse_set_error( "Closing bracket without opening one.");
 				return -1;
 			}
 		}
 		else if( *endptr != '\0' ) {
+			parse_set_error( "Unrecognized character '%c'.", *endptr);
 			return -1;
 		}
 		
@@ -137,10 +144,44 @@ parse( parser_t *parser, char *string)
 	}
 	
 	if( parser->brackets > 0 ) {
+		parse_set_error( "%d unclosed brackets.", parser->brackets);
 		return -1;
 	}
 	
 	return 0;
+};
+
+
+/*
+ * Allocate memory for a program structure.
+ * 
+ * Returns: The allocated structure.
+ */
+program_t *
+program_init()
+{
+	program_t *program = (program_t*)malloc( sizeof(program_t));
+	
+	program->error = NULL;
+	
+	return program;
+};
+
+
+/*
+ * Frees the memory allocated to a program structure.
+ * 
+ * Parameters: program - The Program to be freed.
+ */
+void
+program_free( program_t *program)
+{
+	if( program->error == NULL )
+		stack_free( program->code);
+	else
+		free( program->error);
+	
+	free( program);
 };
 
 
@@ -151,18 +192,20 @@ parse( parser_t *parser, char *string)
  * 
  * Returns: A pointer to the resulting program, or NULL when an error occurs.
  */
-pstack_t *
+program_t *
 parse_expression( char *string)
 {
-	parser_t *parser = parser_init();
-	
+	parser_t  *parser  = parser_init();
+	program_t *program = program_init();
 	
 	if( parse( parser, string) == -1 ) {
 		stack_free( parser_finalize( parser));
-		return NULL;
+		program->error = parse_error;
 	}
+	else
+		program->code = parser_finalize( parser);
 	
-	return parser_finalize( parser);
+	return program;
 };
 
 
@@ -173,12 +216,12 @@ parse_expression( char *string)
  *             stack   - The pstack structure to be used. (Must be cleared!)
  */
 static void
-execute_stack( pstack_t *program, pstack_t *stack)
+execute_stack( program_t *program, pstack_t *stack)
 {
 	byte_t *ptr;
 	
 	
-	for( ptr = program->data; ptr <= program->top; ptr++ ) {
+	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
 		if( ptr->type == DATA_TYPE_NUMBER ) {
 			stack_addnumber( stack, ptr->contents.number);
 			printf( "  NUMBER  %f\n", ptr->contents.number);
@@ -200,7 +243,7 @@ execute_stack( pstack_t *program, pstack_t *stack)
  * Returns: The result as double.
  */
 double
-execute_number( pstack_t *program, pstack_t *stack)
+execute_number( program_t *program, pstack_t *stack)
 {
 	execute_stack( program, stack);
 	

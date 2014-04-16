@@ -11,6 +11,7 @@ Done
 * multiplying
 * dividing
 * brackets
+* error handling
 
 ToDo
 ----
@@ -19,4 +20,3 @@ ToDo
 * preexecution
 * conditionals (C-style ternary operator)
 * precalculating stacksize
-* error handling
