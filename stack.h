@@ -5,6 +5,7 @@ typedef void (*op_t)(pstack_t*);
 typedef struct {
 	char *string;
 	int  precedence;
+	int  stack_increment;
 	op_t function;
 } operator_t;
 

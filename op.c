@@ -60,11 +60,11 @@ op_div( pstack_t *stack)
 
 
 operator_t op_list[] = {
-	{ "*" , 1, op_mul },
-	{ "/" , 1, op_div },
-	{ "+" , 2, op_add },
-	{ "-" , 2, op_sub },
-	{ NULL  , 0, NULL  }
+	{ "*" , 1, -1, op_mul },
+	{ "/" , 1, -1, op_div },
+	{ "+" , 2, -1, op_add },
+	{ "-" , 2, -1, op_sub },
+	{ NULL, 0, 0 , NULL  }
 };
 
 

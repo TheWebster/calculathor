@@ -14,5 +14,5 @@ typedef struct {
 pstack_t  *stack_init( int chunk_size);
 void      stack_free( pstack_t *stack);
 void      program_free( program_t *program);
-program_t *parse_expression( char *string);
+program_t *parse_expression( char *string, int *stacksize);
 double    execute_number( program_t *program, pstack_t *stack);

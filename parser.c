@@ -17,6 +17,8 @@ typedef struct {
 	operator_t *last_operator;
 	
 	int        brackets;
+	int        current_stacksize;
+	int        needed_stacksize;
 } parser_t;
 
 
@@ -34,12 +36,14 @@ parser_init()
 {
 	parser_t *parser = (parser_t*)malloc( sizeof(parser_t));
 	
-	parser->token          = NULL;
-	parser->next           = NULL;
-	parser->last_operator  = NULL;
-	parser->operator_stack = stack_init( PARSER_OPSTACK_CHUNKSIZE);
-	parser->program        = stack_init( PARSER_PROGRAMM_CHUNKSIZE);
-	parser->brackets       = 0;
+	parser->token             = NULL;
+	parser->next              = NULL;
+	parser->last_operator     = NULL;
+	parser->operator_stack    = stack_init( PARSER_OPSTACK_CHUNKSIZE);
+	parser->program           = stack_init( PARSER_PROGRAMM_CHUNKSIZE);
+	parser->brackets          = 0;
+	parser->current_stacksize = 0;
+	parser->needed_stacksize  = 0;
 	
 	return parser;
 };
@@ -70,6 +74,40 @@ parser_finalize( parser_t *parser)
  * Uninitialized, only use pointer.
  */
 static operator_t op_block;
+
+
+/*
+ * Increases the current stackksize and updates the needed stacksize.
+ * Parameters: parser - pointer to parser struct.
+ *             incr   - amount by which current_stacksize should be incremented.
+ */
+void
+stacksize_inc( parser_t *parser, int incr)
+{
+	parser->current_stacksize += incr;
+	parser->needed_stacksize = (parser->current_stacksize > parser->needed_stacksize) ? parser->current_stacksize
+	                                                                                  : parser->needed_stacksize;
+};
+
+
+/*
+ * Flushes the operator_stack into the program stack until it is empty or encounters
+ * the op_block dummy.
+ */
+void
+flush_opstack( parser_t *parser)
+{
+	while( !stack_isempty( parser->operator_stack) ) {
+		operator_t *op = stack_popoperator( parser->operator_stack);
+		
+		
+		if( op == &op_block ) break;
+		
+		stack_addoperator( parser->program, op);
+		stacksize_inc( parser, op->stack_increment);
+	}
+};
+
 
 /*
  * Parses a string, using a given parser structure.
@@ -114,13 +152,12 @@ parse( parser_t *parser, char *string)
 		}
 		
 		stack_addnumber( parser->program, number);
+		stacksize_inc( parser, 1);
+		
 		
 		/* close bracket */
 		if( *endptr == ')' ) {
-			while( stack_getoperator( parser->operator_stack) != &op_block )
-				stack_addoperator( parser->program, stack_popoperator( parser->operator_stack));
-			
-			stack_del( parser->operator_stack);
+			flush_opstack( parser);
 			parser->brackets--;
 		}
 		
@@ -129,9 +166,7 @@ parse( parser_t *parser, char *string)
 				if( parser->last_operator->precedence < stack_getoperator( parser->operator_stack)->precedence )
 					goto skip_flush;
 			}
-			// flush operator stack
-			while( !stack_isempty( parser->operator_stack) && stack_getoperator( parser->operator_stack) != &op_block )
-				stack_addoperator( parser->program, stack_popoperator( parser->operator_stack));
+			flush_opstack( parser);
 		}
 	  skip_flush:
 		
@@ -193,7 +228,7 @@ program_free( program_t *program)
  * Returns: A pointer to the resulting program, or NULL when an error occurs.
  */
 program_t *
-parse_expression( char *string)
+parse_expression( char *string, int *stacksize)
 {
 	parser_t  *parser  = parser_init();
 	program_t *program = program_init();
@@ -202,8 +237,11 @@ parse_expression( char *string)
 		stack_free( parser_finalize( parser));
 		program->error = parse_error;
 	}
-	else
-		program->code = parser_finalize( parser);
+	else {
+		*stacksize = (parser->needed_stacksize > *stacksize) ? parser->needed_stacksize
+		                                                     : *stacksize;
+		program->code      = parser_finalize( parser);
+	}
 	
 	return program;
 };
