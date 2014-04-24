@@ -16,7 +16,7 @@ op_add( pstack_t *stack)
 	double reg = stack_popnumber( stack);
 	
 	reg += stack_popnumber( stack);
-	stack_add( stack, (data_t)reg, DATA_TYPE_NUMBER);
+	stack_addnumber( stack, reg);
 };
 
 

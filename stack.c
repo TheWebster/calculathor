@@ -14,7 +14,7 @@
 static void
 stack_realloc( pstack_t *stack)
 {
-	p_realloc( stack->data, byte_t, stack->size + stack->chunk_size);
+	p_realloc( stack->data, data_t, stack->size + stack->chunk_size);
 	
 	stack->top  = stack->data + stack->size - 1;
 	stack->next = stack->data + stack->size;
@@ -81,7 +81,7 @@ stack_free( pstack_t *stack)
  *             datatype - Type of the data.
  */
 void
-stack_add( pstack_t *stack, data_t data, data_type_t datatype)
+stack_add( pstack_t *stack, content_t data, int datatype)
 {
 	if( stack->top == stack->end )
 		stack_realloc( stack);
@@ -130,7 +130,7 @@ stack_popnumber( pstack_t *stack)
 operator_t *
 stack_popoperator( pstack_t *stack)
 {
-	operator_t *operator = stack->top->contents.operator;
+	operator_t *operator = (operator_t*)stack->top->contents.ptr;
 	
 	stack_del( stack);
 	

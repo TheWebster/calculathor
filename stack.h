@@ -9,28 +9,11 @@ typedef struct {
 	op_t function;
 } operator_t;
 
-typedef union {
-	double     number;
-	void       *ptr;
-	operator_t *operator;
-} data_t;
-
-typedef enum {
-	DATA_TYPE_NUMBER,
-	DATA_TYPE_PTR,
-	DATA_TYPE_OPERATOR
-} data_type_t;
-
-typedef struct {
-	data_t      contents;
-	data_type_t type;
-} byte_t;
-
 struct pstack {
-	byte_t *data;
-	byte_t *end;
-	byte_t *top;
-	byte_t *next;
+	data_t *data;
+	data_t *end;
+	data_t *top;
+	data_t *next;
 	
 	int    size;
 	int    chunk_size;
@@ -39,11 +22,11 @@ struct pstack {
 
 pstack_t *stack_init( int chunk_size);
 
-void     stack_add( pstack_t *stack, data_t data, data_type_t datatype);
-#define  stack_addnumber( stack, number)      stack_add( (stack), (data_t)(number), DATA_TYPE_NUMBER)
-#define  stack_addoperator( stack, operator)  stack_add( (stack), (data_t)(operator), DATA_TYPE_OPERATOR)
+void     stack_add( pstack_t *stack, content_t data, int datatype);
+#define  stack_addnumber( stack, number)      stack_add( (stack), (content_t)(number), DATA_NUMBER)
+#define  stack_addoperator( stack, operator)  stack_add( (stack), (content_t)((void*)operator), DATA_OPERATOR)
 
-#define  stack_getoperator( stack)            ((stack)->top->contents.operator)
+#define  stack_getoperator( stack)            ((operator_t*)(stack)->top->contents.ptr)
 
 void        stack_del( pstack_t *stack);
 double      stack_popnumber( pstack_t *stack);

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "parser.h"
+#define DATA_OPERATOR (1 << 2)
 #include "parse_error.h"
 #include "stack.h"
 #include "op.h"
@@ -256,17 +257,17 @@ parse_expression( char *string, int *stacksize)
 static void
 execute_stack( program_t *program, pstack_t *stack)
 {
-	byte_t *ptr;
+	data_t *ptr;
 	
 	
 	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
-		if( ptr->type == DATA_TYPE_NUMBER ) {
+		if( ptr->type & DATA_NUMBER ) {
 			stack_addnumber( stack, ptr->contents.number);
 			printf( "  NUMBER  %f\n", ptr->contents.number);
 		}
-		else if( ptr->type == DATA_TYPE_OPERATOR ) {
-			printf( "  OP      %s\n", ptr->contents.operator->string);
-			ptr->contents.operator->function( stack);
+		else if( ptr->type & DATA_OPERATOR ) {
+			printf( "  OP      %s\n", ((operator_t*)ptr->contents.ptr)->string);
+			((operator_t*)ptr->contents.ptr)->function( stack);
 		}
 	}
 };
