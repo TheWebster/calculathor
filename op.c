@@ -1,4 +1,5 @@
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -59,12 +60,111 @@ op_div( pstack_t *stack)
 };
 
 
+/*
+ * Callback function for "Less than" (<).
+ */
+void
+op_lt( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( stack_popnumber( stack) < reg )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Less than or equal" (<=).
+ */
+void
+op_le( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( stack_popnumber( stack) <= reg )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Greater than" (>).
+ */
+void
+op_gt( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( stack_popnumber( stack) > reg )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Greater than or equal" (>=).
+ */
+void
+op_ge( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( stack_popnumber( stack) >= reg )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Equal" (==).
+ */
+void
+op_eq( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( stack_popnumber( stack) == reg )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Not equal" (!=).
+ */
+void
+op_neq( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( stack_popnumber( stack) != reg )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
 operator_t op_list[] = {
+	//Arithmetic
 	{ "*" , 1, -1, op_mul },
 	{ "/" , 1, -1, op_div },
 	{ "+" , 2, -1, op_add },
 	{ "-" , 2, -1, op_sub },
-	{ NULL, 0, 0 , NULL  }
+	
+	//Comparing (two char operators need to be listed first to be recognised!)
+	{ "<=", 3, -1, op_le  },
+	{ ">=", 3, -1, op_ge  },
+	{ "==", 4, -1, op_eq  },
+	{ "!=", 4, -1, op_neq },
+	{ "<" , 3, -1, op_lt  },
+	{ ">" , 3, -1, op_gt  },	
+	{ NULL, 0, 0 , NULL   }
 };
 
 

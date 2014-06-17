@@ -1,5 +1,7 @@
 
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "parser.h"
 
@@ -23,16 +25,16 @@ strip_string( char *string)
 int main( int argc, char *argv[])
 {
 	int       stacks   = 0;
-	program_t *program;
+	program_t *program = program_init();
 	pstack_t  *stack;
 	
 	strip_string( argv[1]);
 	printf( "Stripped string: \"%s\"\n\n", argv[1]);
 	
-	program = parse_expression( argv[1], &stacks);
-	if( prog_has_error(program) ) {
-		printf( "Error: %s\n", program->error);
+	if( parse_expression( argv[1], program, &stacks) == -1 ) {
+		printf( "Error: %s\n", parse_error);
 		program_free( program);
+		free( parse_error);
 		return 1;
 	}
 	

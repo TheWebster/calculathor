@@ -1,10 +1,11 @@
 
+#include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h> // debugging!!
 #include <stdlib.h>
+#include <string.h>
 
 #include "parser.h"
-#define DATA_OPERATOR (1 << 2)
-#include "parse_error.h"
 #include "stack.h"
 #include "op.h"
 
@@ -21,6 +22,11 @@ typedef struct {
 	int        current_stacksize;
 	int        needed_stacksize;
 } parser_t;
+
+struct pprogram {
+	pstack_t *code;
+	data_t   preexec;
+};
 
 
 #define PARSER_PROGRAMM_CHUNKSIZE 16
@@ -109,6 +115,29 @@ flush_opstack( parser_t *parser)
 	}
 };
 
+char *parse_error = NULL;
+
+static void
+set_error( char *format, ...)
+{
+	int     size;
+	va_list vargs;
+	
+	if( parse_error != NULL ) {
+		free( parse_error);
+		parse_error = NULL;
+	}
+	
+	va_start( vargs, format);
+	size = vsnprintf( parse_error, 0, format, vargs);
+	va_end( vargs);
+	
+	parse_error = (char*)malloc( size+1);
+	va_start( vargs, format);
+	vsnprintf( parse_error, size+1, format, vargs);
+	va_end( vargs);
+};
+
 
 /*
  * Parses a string, using a given parser structure.
@@ -129,7 +158,7 @@ parse( parser_t *parser, char *string)
 		
 		
 		if( *parser->next == '\0' ) {
-			parse_set_error( "Expected expression before '%s'.", parser->last_operator->string);
+			set_error( "Expected expression before '%s'.", parser->last_operator->string);
 			return -1;
 		}
 		
@@ -143,12 +172,12 @@ parse( parser_t *parser, char *string)
 		number = strtod( parser->token, &endptr);
 		if( *endptr == ')' ) {
 			if( parser->brackets == 0 ) {
-				parse_set_error( "Closing bracket without opening one.");
+				set_error( "Closing bracket without opening one.");
 				return -1;
 			}
 		}
 		else if( *endptr != '\0' ) {
-			parse_set_error( "Unrecognized character '%c'.", *endptr);
+			set_error( "Unrecognized character '%c'.", *endptr);
 			return -1;
 		}
 		
@@ -180,7 +209,7 @@ parse( parser_t *parser, char *string)
 	}
 	
 	if( parser->brackets > 0 ) {
-		parse_set_error( "%d unclosed brackets.", parser->brackets);
+		set_error( "%d unclosed brackets.", parser->brackets);
 		return -1;
 	}
 	
@@ -198,7 +227,7 @@ program_init()
 {
 	program_t *program = (program_t*)malloc( sizeof(program_t));
 	
-	program->error = NULL;
+	memset( program, 0, sizeof(program_t));
 	
 	return program;
 };
@@ -212,10 +241,11 @@ program_init()
 void
 program_free( program_t *program)
 {
-	if( program->error == NULL )
+	if( program->code != NULL )
 		stack_free( program->code);
-	else
-		free( program->error);
+	
+	if( program->preexec.type & DATA_STRING )
+		free( program->preexec.contents.ptr);
 	
 	free( program);
 };
@@ -228,15 +258,14 @@ program_free( program_t *program)
  * 
  * Returns: A pointer to the resulting program, or NULL when an error occurs.
  */
-program_t *
-parse_expression( char *string, int *stacksize)
+int
+parse_expression( char *string, program_t *program, int *stacksize)
 {
 	parser_t  *parser  = parser_init();
-	program_t *program = program_init();
 	
 	if( parse( parser, string) == -1 ) {
 		stack_free( parser_finalize( parser));
-		program->error = parse_error;
+		return -1;
 	}
 	else {
 		*stacksize = (parser->needed_stacksize > *stacksize) ? parser->needed_stacksize
@@ -244,7 +273,7 @@ parse_expression( char *string, int *stacksize)
 		program->code      = parser_finalize( parser);
 	}
 	
-	return program;
+	return 0;
 };
 
 

@@ -9,27 +9,36 @@ typedef union {
 #define DATA_SOFT_PTR  (1 << 1)
 #define DATA_PTR       (DATA_HARD_PTR | DATA_SOFT_PTR)
 
+#define DATA_OPERATOR  (1 << 2)
 #define DATA_NUMBER    (1 << 3)
+#define DATA_STRING    (1 << 4)
+
+#define DATA_EXTERN_01 (1 << 5)
+#define DATA_EXTERN_02 (1 << 6)
+#define DATA_EXTERN_03 (1 << 7)
+#define DATA_EXTERN_04 (1 << 8)
+#define DATA_EXTERN_05 (1 << 9)
+#define DATA_EXTERN_06 (1 << 10)
+#define DATA_EXTERN_07 (1 << 11)
+#define DATA_EXTERN_08 (1 << 12)
+#define DATA_EXTERN_09 (1 << 13)
+#define DATA_EXTERN_10 (1 << 14)
+#define DATA_EXTERN_11 (1 << 15)
 
 typedef struct {
 	content_t contents;
-	int       type;
+	uint16_t  type;
 } data_t;
 
+typedef struct pstack pstack_t;
+typedef struct pprogram program_t;
 
-typedef struct pstack  pstack_t;
-
-
-typedef struct {
-	pstack_t *code;
-	
-	char     *error;
-} program_t;
-
-#define prog_has_error( prog)   ((prog)->error != NULL)
-
+extern char *parse_error;
 pstack_t  *stack_init( int chunk_size);
 void      stack_free( pstack_t *stack);
+
+program_t *program_init();
 void      program_free( program_t *program);
-program_t *parse_expression( char *string, int *stacksize);
+
+int       parse_expression( char *string, program_t *program, int *stacksize);
 double    execute_number( program_t *program, pstack_t *stack);
