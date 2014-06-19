@@ -180,8 +180,14 @@ parse( parser_t *parser, char *string)
 				set_error( "Closing bracket without opening one.");
 				return -1;
 			}
+			
+			if( endptr == parser->token ) {
+				set_error( "Expected expression before ')'.");
+				return -1;
+			}
 		}
-		else if( *endptr != '\0' ) {
+		
+		if( endptr == parser->token ) {
 			set_error( "Unrecognized character '%c'.", *endptr);
 			return -1;
 		}

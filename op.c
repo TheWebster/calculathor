@@ -150,20 +150,69 @@ op_neq( pstack_t *stack)
 };
 
 
+/*
+ * Callback function for "And" (&&).
+ */
+void
+op_and( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( (reg != 0.0) && (stack_popnumber( stack) != 0.0) )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Not" (!).
+ */
+void
+op_not( pstack_t *stack)
+{
+	if( stack_popnumber( stack) == 0.0 )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
+/*
+ * Callback function for "Or" (||).
+ */
+void
+op_or( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	if( (reg != 0.0) || (stack_popnumber( stack) != 0.0) )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
 operator_t op_list[] = {
 	//Arithmetic
-	{ "*" , 1, -1, op_mul },
-	{ "/" , 1, -1, op_div },
-	{ "+" , 2, -1, op_add },
-	{ "-" , 2, -1, op_sub },
+	{ "*" , 2, -1, op_mul },
+	{ "/" , 2, -1, op_div },
+	{ "+" , 3, -1, op_add },
+	{ "-" , 3, -1, op_sub },
 	
 	//Comparing (two char operators need to be listed first to be recognised!)
-	{ "<=", 3, -1, op_le  },
-	{ ">=", 3, -1, op_ge  },
-	{ "==", 4, -1, op_eq  },
-	{ "!=", 4, -1, op_neq },
-	{ "<" , 3, -1, op_lt  },
-	{ ">" , 3, -1, op_gt  },	
+	{ "<=", 4, -1, op_le  },
+	{ ">=", 4, -1, op_ge  },
+	{ "==", 5, -1, op_eq  },
+	{ "!=", 5, -1, op_neq },
+	{ "<" , 4, -1, op_lt  },
+	{ ">" , 4, -1, op_gt  },
+	
+	//Logical
+	{ "!" , 1,  0, op_not },
+	{ "&&", 6, -1, op_and },
+	{ "||", 6, -1, op_or  },
+		
 	{ NULL, 0, 0 , NULL   }
 };
 
