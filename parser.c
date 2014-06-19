@@ -158,6 +158,11 @@ parse( parser_t *parser, char *string)
 		
 		
 		if( *parser->next == '\0' ) {
+			set_error( "Expected expression after '%s'.", parser->last_operator->string);
+			return -1;
+		}
+		
+		if( *parser->token == '\0' ) {
 			set_error( "Expected expression before '%s'.", parser->last_operator->string);
 			return -1;
 		}
