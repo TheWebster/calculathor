@@ -237,7 +237,7 @@ operator_t operator_unary_minus = { "-", 1, OP_TYPE_UNARY_NOT, op_unary_minus };
 
 
 /*
- * Compares two strings until one of them reaches its end.
+ * Compares two strings until s1 reaches its end.
  * 
  * Parameters: s1 and s2 - Strings to be compared.
  * 
@@ -247,10 +247,7 @@ operator_t operator_unary_minus = { "-", 1, OP_TYPE_UNARY_NOT, op_unary_minus };
 static int
 strlcmp( char *s1, char *s2)
 {
-	if( *s1 == '\0' || *s2 == '\0' )
-		return -1;
-	
-	while( *s1 != '\0' && *s2 != '\0' ) {
+	while( *s1 != '\0' ) {
 		if( *s1 != *s2 )
 			return -1;
 		

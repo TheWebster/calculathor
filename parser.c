@@ -210,7 +210,6 @@ parse( parser_t *parser, char *string)
 			char   *endptr;
 			double number;
 			
-			
 			if( value_valid( parser) == -1 ) {
 				set_error( "Expected operator before value '%s'.", parser->variable);
 				return -1;
