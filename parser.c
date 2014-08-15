@@ -14,8 +14,9 @@ typedef struct {
 	pstack_t   *program;
 	pstack_t   *operator_stack;
 	
-	char       *token;
+	char       *variable;
 	char       *next;
+	data_t     *last_token;
 	operator_t *last_operator;
 	
 	int        brackets;
@@ -43,8 +44,9 @@ parser_init()
 {
 	parser_t *parser = (parser_t*)malloc( sizeof(parser_t));
 	
-	parser->token             = NULL;
+	parser->variable          = NULL;
 	parser->next              = NULL;
+	parser->last_token        = NULL;
 	parser->last_operator     = NULL;
 	parser->operator_stack    = stack_init( PARSER_OPSTACK_CHUNKSIZE);
 	parser->program           = stack_init( PARSER_PROGRAMM_CHUNKSIZE);
@@ -77,13 +79,6 @@ parser_finalize( parser_t *parser)
 
 
 /*
- * Dummy operator to stop flushing the operator stack.
- * Uninitialized, only use pointer.
- */
-static operator_t op_block;
-
-
-/*
  * Increases the current stackksize and updates the needed stacksize.
  * Parameters: parser - pointer to parser struct.
  *             incr   - amount by which current_stacksize should be incremented.
@@ -102,16 +97,23 @@ stacksize_inc( parser_t *parser, int incr)
  * the op_block dummy.
  */
 void
-flush_opstack( parser_t *parser)
+flush_opstack( parser_t *parser, int precedence)
 {
 	while( !stack_isempty( parser->operator_stack) ) {
-		operator_t *op = stack_popoperator( parser->operator_stack);
+		operator_t *op = stack_getoperator( parser->operator_stack);
+		int        increment = (op->op_type != OP_TYPE_UNARY_NOT) ? -1 : 0;
 		
 		
-		if( op == &op_block ) break;
+		if( op->op_type == OP_TYPE_CLOSE_BRACKET ) {
+			stack_del( parser->operator_stack);
+			continue;
+		}
+		if( op->op_type == OP_TYPE_OPEN_BRACKET ) break;
+		if( op->precedence > precedence ) break;
 		
 		stack_addoperator( parser->program, op);
-		stacksize_inc( parser, op->stack_increment);
+		stack_del( parser->operator_stack);
+		stacksize_inc( parser, increment);
 	}
 };
 
@@ -139,6 +141,57 @@ set_error( char *format, ...)
 };
 
 
+static int
+binary_op_valid( parser_t *parser)
+{
+	if( parser->last_token == NULL )
+		return -1;
+	
+	if( parser->last_token->type == DATA_OPERATOR ) {
+		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
+		
+		if( op->op_type != OP_TYPE_CLOSE_BRACKET )
+			return -1;
+	}
+	
+	return 0;
+};
+
+
+static int
+unary_op_valid( parser_t *parser)
+{
+	if( parser->last_token == NULL )
+		return 0;
+	
+	if( parser->last_token->type == DATA_OPERATOR ) {
+		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
+		
+		if( op->op_type == OP_TYPE_OPEN_BRACKET || op->op_type == OP_TYPE_UNARY_NOT )
+			return 0;
+	}
+	
+	return -1;
+};
+
+
+static int
+value_valid( parser_t *parser)
+{
+	if( parser->last_token == NULL )
+		return 0;
+	
+	if( parser->last_token->type == DATA_OPERATOR ) {
+		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
+		
+		if( op->op_type != OP_TYPE_CLOSE_BRACKET )
+			return 0;
+	}
+	
+	return -1;
+};
+
+
 /*
  * Parses a string, using a given parser structure.
  * 
@@ -150,79 +203,107 @@ set_error( char *format, ...)
 static int
 parse( parser_t *parser, char *string)
 {
-	parser->token = string;
+	parser->variable = string;
 	
-	while( (parser->last_operator = op_token( parser->token, &parser->next)) != NULL || *parser->next != '\0' ) {
-		char   *endptr;
-		double number;
-		
-		
-		if( *parser->next == '\0' ) {
-			set_error( "Expected expression after '%s'.", parser->last_operator->string);
-			return -1;
-		}
-		
-		if( *parser->token == '\0' ) {
-			set_error( "Expected expression before '%s'.", parser->last_operator->string);
-			return -1;
-		}
-		
-		/* open bracket */
-		if( *parser->token == '(' ) {
-			parser->brackets++;
-			parser->token++;
-			stack_addoperator( parser->operator_stack, &op_block);
-		}
-		
-		number = strtod( parser->token, &endptr);
-		if( *endptr == ')' ) {
-			if( parser->brackets == 0 ) {
-				set_error( "Closing bracket without opening one.");
+	while( (parser->last_operator = op_token( parser->variable, &parser->next)) != NULL || *parser->variable != '\0' ) {
+		if( *parser->variable != '\0' ) {
+			char   *endptr;
+			double number;
+			
+			
+			if( value_valid( parser) == -1 ) {
+				set_error( "Expected operator before value '%s'.", parser->variable);
 				return -1;
 			}
 			
-			if( endptr == parser->token ) {
-				set_error( "Expected expression before ')'.");
+			number = strtod( parser->variable, &endptr);
+			if( *endptr == '\0' ) {
+				stack_addnumber( parser->program, number);
+				stacksize_inc( parser, 1);
+				
+				parser->last_token = parser->program->top;
+			}
+			else {
+				set_error( "Unknown variable '%s'.", parser->variable);
 				return -1;
 			}
 		}
 		
-		if( endptr == parser->token ) {
-			set_error( "Unrecognized character '%c'.", *endptr);
-			return -1;
-		}
-		
-		stack_addnumber( parser->program, number);
-		stacksize_inc( parser, 1);
-		
-		
-		/* close bracket */
-		if( *endptr == ')' ) {
-			flush_opstack( parser);
-			parser->brackets--;
-		}
-		
-		if( !stack_isempty( parser->operator_stack) && stack_getoperator( parser->operator_stack) != &op_block ) {
-			if( parser->last_operator != NULL ) {
-				if( parser->last_operator->precedence < stack_getoperator( parser->operator_stack)->precedence )
-					goto skip_flush;
+		if( parser->last_operator != NULL ) {
+			switch( parser->last_operator->op_type ) {
+				case OP_TYPE_MINUS:
+					if( unary_op_valid( parser) == 0 ) {
+						parser->last_operator = &operator_unary_minus;
+						break;
+					}
+					goto binary;
+					
+				case OP_TYPE_PLUS:
+					if( unary_op_valid( parser) == 0 )
+						goto skip_op_handling;
+				
+			  binary:
+				case OP_TYPE_BINARY:
+					if( binary_op_valid( parser) == -1 ) {
+						set_error( "Expected value before operator '%s'.", parser->last_operator->string);
+						return -1;
+					}
+					break;
+				
+				case OP_TYPE_OPEN_BRACKET:
+					if( value_valid( parser) == -1 ) {
+						set_error( "Expected operator before open bracket.");
+						return -1;
+					}
+					parser->brackets++;
+					break;
+				
+				case OP_TYPE_CLOSE_BRACKET:
+					if( binary_op_valid( parser) == -1 ) {
+						set_error( "Expected value before closed brackets.");
+						return -1;
+					}
+					if( parser->brackets == 0 ) {
+						set_error( "Closing bracket without opening one.");
+						return -1;
+					}
+					parser->brackets--;
+					flush_opstack( parser, 10);
+					stack_del( parser->operator_stack); // delete open bracket
+					goto skip_op_handling;
+					break;
+				
+				case OP_TYPE_UNARY_NOT:
+					if( unary_op_valid( parser) == -1 ) {
+						set_error( "Value before unary operator '%s'.", parser->last_operator->string);
+						return -1;
+					}
+					break;
 			}
-			flush_opstack( parser);
+			
+			flush_opstack( parser, parser->last_operator->precedence);
+		  skip_op_handling:
+			stack_addoperator( parser->operator_stack, parser->last_operator);
+			
+			parser->last_token = parser->operator_stack->top;
 		}
-	  skip_flush:
-		
-		if( parser->last_operator == NULL )
-			break;
-		
-		stack_addoperator( parser->operator_stack, parser->last_operator);
-		
-		parser->token = parser->next;
+		parser->variable = parser->next;
 	}
 	
+	if( parser->last_token->type == DATA_OPERATOR ) {
+		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
+		
+		if( op->op_type != OP_TYPE_CLOSE_BRACKET ) {
+			set_error( "Expected value after operator '%s'.", op->string);
+			return -1;
+		}
+	}
 	if( parser->brackets > 0 ) {
 		set_error( "%d unclosed brackets.", parser->brackets);
 		return -1;
 	}
+	
+	flush_opstack( parser, 10);
 	
 	return 0;
 };

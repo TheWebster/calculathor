@@ -166,19 +166,6 @@ op_and( pstack_t *stack)
 
 
 /*
- * Callback function for "Not" (!).
- */
-void
-op_not( pstack_t *stack)
-{
-	if( stack_popnumber( stack) == 0.0 )
-		stack_addnumber( stack, 1.0);
-	else
-		stack_addnumber( stack, 0.0);
-};
-
-
-/*
  * Callback function for "Or" (||).
  */
 void
@@ -193,28 +180,60 @@ op_or( pstack_t *stack)
 };
 
 
+/*
+ * Callback function for "Unary Minus" (-).
+ */
+void
+op_unary_minus( pstack_t *stack)
+{
+	double reg = stack_popnumber( stack);
+	
+	stack_addnumber( stack, -reg);
+};
+
+
+/*
+ * Callback function for "Not" (!).
+ */
+void
+op_not( pstack_t *stack)
+{
+	if( stack_popnumber( stack) == 0.0 )
+		stack_addnumber( stack, 1.0);
+	else
+		stack_addnumber( stack, 0.0);
+};
+
+
 operator_t op_list[] = {
 	//Arithmetic
-	{ "*" , 2, -1, op_mul },
-	{ "/" , 2, -1, op_div },
-	{ "+" , 3, -1, op_add },
-	{ "-" , 3, -1, op_sub },
+	{ "*" , 2, OP_TYPE_BINARY, op_mul },
+	{ "/" , 2, OP_TYPE_BINARY, op_div },
+	{ "+" , 3, OP_TYPE_PLUS  , op_add },
+	{ "-" , 3, OP_TYPE_MINUS , op_sub },
 	
 	//Comparing (two char operators need to be listed first to be recognised!)
-	{ "<=", 4, -1, op_le  },
-	{ ">=", 4, -1, op_ge  },
-	{ "==", 5, -1, op_eq  },
-	{ "!=", 5, -1, op_neq },
-	{ "<" , 4, -1, op_lt  },
-	{ ">" , 4, -1, op_gt  },
+	{ "<=", 4, OP_TYPE_BINARY, op_le  },
+	{ ">=", 4, OP_TYPE_BINARY, op_ge  },
+	{ "==", 5, OP_TYPE_BINARY, op_eq  },
+	{ "!=", 5, OP_TYPE_BINARY, op_neq },
+	{ "<" , 4, OP_TYPE_BINARY, op_lt  },
+	{ ">" , 4, OP_TYPE_BINARY, op_gt  },
 	
 	//Logical
-	{ "!" , 1,  0, op_not },
-	{ "&&", 6, -1, op_and },
-	{ "||", 6, -1, op_or  },
+	{ "&&", 6, OP_TYPE_BINARY, op_and },
+	{ "||", 6, OP_TYPE_BINARY, op_or  },
+	
+	//Special operators
+	{ "!" , 1,  OP_TYPE_UNARY_NOT    , op_not },
+	{ "(" , 0,  OP_TYPE_OPEN_BRACKET , NULL },
+	{ ")" , 0,  OP_TYPE_CLOSE_BRACKET, NULL },
 		
 	{ NULL, 0, 0 , NULL   }
 };
+
+
+operator_t operator_unary_minus = { "-", 1, OP_TYPE_UNARY_NOT, op_unary_minus };
 
 
 /*
@@ -264,11 +283,6 @@ op_token( char *string, char **next)
 		
 		for(; ops->string; ops++ ) {
 			if( strlcmp( ops->string, hlp_string) == 0 ) {
-				if( hlp_string == string ) {
-					if( ops->function == op_add || ops->function == op_sub )
-						continue;
-				}
-
 				*hlp_string = '\0';
 				*next = hlp_string + strlen( ops->string);
 				
@@ -276,6 +290,8 @@ op_token( char *string, char **next)
 			}
 		}
 	}
+	
+	*next = hlp_string;
 	
 	return NULL;
 };
