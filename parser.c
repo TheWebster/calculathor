@@ -6,8 +6,8 @@
 #include <string.h>
 
 #include "parser.h"
-#include "stack.h"
 #include "op.h"
+#include "stack.h"
 
 
 typedef struct {
@@ -92,31 +92,6 @@ stacksize_inc( parser_t *parser, int incr)
 };
 
 
-/*
- * Flushes the operator_stack into the program stack until it is empty or encounters
- * the op_block dummy.
- */
-void
-flush_opstack( parser_t *parser, int precedence)
-{
-	while( !stack_isempty( parser->operator_stack) ) {
-		operator_t *op = stack_getoperator( parser->operator_stack);
-		int        increment = (op->op_type != OP_TYPE_UNARY_NOT) ? -1 : 0;
-		
-		
-		if( op->op_type == OP_TYPE_CLOSE_BRACKET ) {
-			stack_del( parser->operator_stack);
-			continue;
-		}
-		if( op->op_type == OP_TYPE_OPEN_BRACKET ) break;
-		if( op->precedence > precedence ) break;
-		
-		stack_addoperator( parser->program, op);
-		stack_del( parser->operator_stack);
-		stacksize_inc( parser, increment);
-	}
-};
-
 char *parse_error = NULL;
 
 static void
@@ -142,16 +117,82 @@ set_error( char *format, ...)
 
 
 static int
+check_type( parser_t *parser, operator_t *op, int number)
+{
+	int        i;
+	
+	
+	if( (parser->program->end - parser->program->data) < number ) {
+		set_error( "Not enough arguments for operator '%s'.", op->string);
+		return -1;
+	}
+	
+	for( i = 0; i < number; i++ ) {
+		data_t *d = parser->program->top - i;
+		
+		
+		if( d->type == DATA_OPERATOR ) {
+			operator_t *opa = (operator_t*)(d->contents.ptr);
+			
+			if( op->needed_type & opa->returned_type ) continue;
+		}
+		else
+			if( op->needed_type & d->type ) continue;
+		
+		set_error( "Invalid type for operator '%s'.", op->string);
+		return -1;
+	}
+	
+	return 0;
+};
+		
+
+
+/*
+ * Flushes the operator_stack into the program stack until it is empty or encounters
+ * the op_block dummy.
+ */
+int
+flush_opstack( parser_t *parser, int precedence)
+{
+	while( !stack_isempty( parser->operator_stack) ) {
+		operator_t *op = stack_getoperator( parser->operator_stack);
+		int        increment = (op->op_type != OP_TYPE_UNARY_NOT) ? -1 : 0;
+		
+		
+		if( op->op_type == OP_TYPE_CLOSE_BRACKET ) {
+			stack_del( parser->operator_stack);
+			continue;
+		}
+		if( op->op_type == OP_TYPE_OPEN_BRACKET ) break;
+		if( op->precedence > precedence ) break;
+		
+		/* typechecking */
+		if( op->op_type == OP_TYPE_UNARY_NOT ) {
+			if( check_type( parser, op, 1) == -1 ) return -1;
+		}
+		else {
+			if( check_type( parser, op, 2) == -1 ) return -1;
+		}
+		
+		stack_addoperator( parser->program, op);
+		stack_del( parser->operator_stack);
+		stacksize_inc( parser, increment);
+	}
+	
+	return 0;
+};
+
+
+static int
 binary_op_valid( parser_t *parser)
 {
-	if( parser->last_token == NULL )
-		return -1;
+	if( parser->last_token == NULL ) return -1;
 	
 	if( parser->last_token->type == DATA_OPERATOR ) {
 		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
 		
-		if( op->op_type != OP_TYPE_CLOSE_BRACKET )
-			return -1;
+		if( op->op_type != OP_TYPE_CLOSE_BRACKET ) return -1;
 	}
 	
 	return 0;
@@ -161,14 +202,12 @@ binary_op_valid( parser_t *parser)
 static int
 unary_op_valid( parser_t *parser)
 {
-	if( parser->last_token == NULL )
-		return 0;
+	if( parser->last_token == NULL ) return 0;
 	
 	if( parser->last_token->type == DATA_OPERATOR ) {
 		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
 		
-		if( op->op_type == OP_TYPE_OPEN_BRACKET || op->op_type == OP_TYPE_UNARY_NOT )
-			return 0;
+		if( op->op_type == OP_TYPE_OPEN_BRACKET || op->op_type == OP_TYPE_UNARY_NOT ) return 0;
 	}
 	
 	return -1;
@@ -184,8 +223,7 @@ value_valid( parser_t *parser)
 	if( parser->last_token->type == DATA_OPERATOR ) {
 		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
 		
-		if( op->op_type != OP_TYPE_CLOSE_BRACKET )
-			return 0;
+		if( op->op_type != OP_TYPE_CLOSE_BRACKET ) return 0;
 	}
 	
 	return -1;
@@ -201,7 +239,7 @@ value_valid( parser_t *parser)
  * Returns: 0 on success, -1 when an error occurs.
  */
 static int
-parse( parser_t *parser, char *string)
+parse( parser_t *parser, char *string, uint16_t allowed_type)
 {
 	parser->variable = string;
 	
@@ -215,16 +253,25 @@ parse( parser_t *parser, char *string)
 				return -1;
 			}
 			
-			number = strtod( parser->variable, &endptr);
-			if( *endptr == '\0' ) {
-				stack_addnumber( parser->program, number);
+			if( *parser->variable == '"' && parser->last_operator == NULL ) {
+				parser->variable++;
+				stack_addstring( parser->program, parser->variable);
 				stacksize_inc( parser, 1);
 				
 				parser->last_token = parser->program->top;
 			}
 			else {
-				set_error( "Unknown variable '%s'.", parser->variable);
-				return -1;
+				number = strtod( parser->variable, &endptr);
+				if( *endptr == '\0' ) {
+					stack_addnumber( parser->program, number);
+					stacksize_inc( parser, 1);
+					
+					parser->last_token = parser->program->top;
+				}
+				else {
+					set_error( "Unknown variable '%s'.", parser->variable);
+					return -1;
+				}
 			}
 		}
 		
@@ -267,7 +314,7 @@ parse( parser_t *parser, char *string)
 						return -1;
 					}
 					parser->brackets--;
-					flush_opstack( parser, 10);
+					if( flush_opstack( parser, 10) == -1 ) return -1;
 					stack_del( parser->operator_stack); // delete open bracket
 					goto skip_op_handling;
 					break;
@@ -280,7 +327,7 @@ parse( parser_t *parser, char *string)
 					break;
 			}
 			
-			flush_opstack( parser, parser->last_operator->precedence);
+			if( flush_opstack( parser, parser->last_operator->precedence) == -1 ) return -1;
 		  skip_op_handling:
 			stack_addoperator( parser->operator_stack, parser->last_operator);
 			
@@ -302,9 +349,20 @@ parse( parser_t *parser, char *string)
 		return -1;
 	}
 	
-	flush_opstack( parser, 10);
+	if( flush_opstack( parser, 10) == -1 ) return -1;
 	
-	return 0;
+	if( parser->program->top->type == DATA_OPERATOR ) {
+		operator_t *op = stack_getoperator( parser->program);
+		
+		if( allowed_type & op->returned_type ) return 0;
+	}
+	else {
+		if( allowed_type & parser->program->top->type ) return 0;
+	}
+			
+	set_error( "Resulting type not allowed.");
+	
+	return -1;
 };
 
 
@@ -350,11 +408,11 @@ program_free( program_t *program)
  * Returns: A pointer to the resulting program, or NULL when an error occurs.
  */
 int
-parse_expression( char *string, program_t *program, int *stacksize)
+parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type)
 {
 	parser_t  *parser  = parser_init();
 	
-	if( parse( parser, string) == -1 ) {
+	if( parse( parser, string, allowed_type) == -1 ) {
 		stack_free( parser_finalize( parser));
 		return -1;
 	}
@@ -365,6 +423,30 @@ parse_expression( char *string, program_t *program, int *stacksize)
 	}
 	
 	return 0;
+};
+
+
+static void
+print_stack( pstack_t *stack)
+{
+	data_t *ptr;
+	
+	
+	for( ptr = stack->data; ptr <= stack->top; ptr++ ) {
+		if( ptr->type & DATA_NUMBER )
+			printf( "   NUBER:  %f\n", ptr->contents.number);
+		else if( ptr->type & DATA_STRING )
+			printf( "   STRING: %s\n", ptr->contents.string);
+		else if( ptr->type & DATA_OPERATOR )
+			printf( "   OP      %s\n", ((operator_t*)ptr->contents.ptr)->string);
+	}
+};
+
+
+void
+print_program( program_t *prog)
+{
+	print_stack( prog->code);
 };
 
 
@@ -383,10 +465,8 @@ execute_stack( program_t *program, pstack_t *stack)
 	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
 		if( ptr->type & DATA_NUMBER ) {
 			stack_addnumber( stack, ptr->contents.number);
-			printf( "  NUMBER  %f\n", ptr->contents.number);
 		}
 		else if( ptr->type & DATA_OPERATOR ) {
-			printf( "  OP      %s\n", ((operator_t*)ptr->contents.ptr)->string);
 			((operator_t*)ptr->contents.ptr)->function( stack);
 		}
 	}

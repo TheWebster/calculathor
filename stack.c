@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "parser.h"
+#include "op.h"
 #include "stack.h"
 
 
@@ -48,6 +49,22 @@ stack_init( int chunk_size)
 
 
 /*
+ * Deletes an element of data from a pstack structure.
+ * 
+ * Parameters: stack - I'm fuckin' sick of typing this bullshit all over again and again and again. Just use some common sense.
+ */
+void
+stack_del( pstack_t *stack)
+{
+	if( stack->top->type == DATA_STRING )
+		free( stack->top->contents.string);
+		
+	stack->next--;
+	stack->top--;
+};
+
+
+/*
  * Clears a pstack structure. After clearing it can be used as if it was just created.
  * 
  * Parameters: stack - The pstack structure to be cleared.
@@ -55,8 +72,8 @@ stack_init( int chunk_size)
 void
 stack_clear( pstack_t *stack)
 {
-	stack->next = stack->data;
-	stack->top  = stack->data - 1;
+	while( !stack_isempty( stack) )
+		stack_del( stack);
 };
 
 
@@ -68,6 +85,7 @@ stack_clear( pstack_t *stack)
 void
 stack_free( pstack_t *stack)
 {
+	stack_clear( stack);
 	free( stack->data);
 	free( stack);
 };
@@ -95,16 +113,13 @@ stack_add( pstack_t *stack, content_t data, int datatype)
 };
 
 
-/*
- * Deletes an element of data from a pstack structure.
- * 
- * Parameters: stack - I'm fuckin' sick of typing this bullshit all over again and again and again. Just use some common sense.
- */
 void
-stack_del( pstack_t *stack)
+stack_addstring( pstack_t *stack, char *string)
 {
-	stack->next--;
-	stack->top--;
+	char *ptr = (char*)malloc( strlen( string)+1);
+	
+	strcpy( ptr, string);
+	stack_add( stack, (content_t)ptr, DATA_STRING);
 };
 
 
