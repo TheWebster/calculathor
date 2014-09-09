@@ -120,15 +120,35 @@ op_ge( pstack_t *stack)
 };
 
 
+static int
+op_hlp_eq( pstack_t *stack)
+{
+	data_t *a = stack->top;
+	data_t *b = stack->top - 1;
+	int    ret = -1;
+	
+	
+	if( a->type == b->type ) {
+		if( a->type == DATA_STRING )
+			ret = strcmp( a->contents.string, b->contents.string);
+		else if( a->contents.number == b->contents.number ) ret = 0;
+		else if( a->contents.ptr    == b->contents.ptr ) ret = 0;
+	}
+	
+	stack_del( stack);
+	stack_del( stack);
+	
+	return ret;
+};
+
+
 /*
  * Callback function for "Equal" (==).
  */
 void
 op_eq( pstack_t *stack)
 {
-	double reg = stack_popnumber( stack);
-	
-	if( stack_popnumber( stack) == reg )
+	if( op_hlp_eq( stack) == 0 )
 		stack_addnumber( stack, 1.0);
 	else
 		stack_addnumber( stack, 0.0);
@@ -141,13 +161,36 @@ op_eq( pstack_t *stack)
 void
 op_neq( pstack_t *stack)
 {
-	double reg = stack_popnumber( stack);
-	
-	if( stack_popnumber( stack) != reg )
+	if( op_hlp_eq( stack) != 0 )
 		stack_addnumber( stack, 1.0);
 	else
 		stack_addnumber( stack, 0.0);
 };
+
+
+static int
+op_hlp_logic( pstack_t *stack)
+{
+	int    ret = 1;
+	
+	
+	if( stack->top->type == DATA_NUMBER ) {
+		if( stack->top->contents.number == 0.0 )
+			ret = 0;
+	}
+	else if( stack->top->type == DATA_STRING ) {
+		if( *stack->top->contents.string == '\0' )
+			ret = 0;
+	}
+	
+	stack_del( stack);
+	return ret;
+};
+	
+	
+	
+	
+	
 
 
 /*
@@ -156,9 +199,7 @@ op_neq( pstack_t *stack)
 void
 op_and( pstack_t *stack)
 {
-	double reg = stack_popnumber( stack);
-	
-	if( (reg != 0.0) && (stack_popnumber( stack) != 0.0) )
+	if( op_hlp_logic( stack) && op_hlp_logic( stack) )
 		stack_addnumber( stack, 1.0);
 	else
 		stack_addnumber( stack, 0.0);
@@ -171,9 +212,7 @@ op_and( pstack_t *stack)
 void
 op_or( pstack_t *stack)
 {
-	double reg = stack_popnumber( stack);
-	
-	if( (reg != 0.0) || (stack_popnumber( stack) != 0.0) )
+	if( op_hlp_logic( stack) || op_hlp_logic( stack) )
 		stack_addnumber( stack, 1.0);
 	else
 		stack_addnumber( stack, 0.0);
@@ -198,10 +237,10 @@ op_unary_minus( pstack_t *stack)
 void
 op_not( pstack_t *stack)
 {
-	if( stack_popnumber( stack) == 0.0 )
-		stack_addnumber( stack, 1.0);
-	else
+	if( op_hlp_logic( stack) )
 		stack_addnumber( stack, 0.0);
+	else
+		stack_addnumber( stack, 1.0);
 };
 
 
@@ -280,7 +319,7 @@ op_token( char *string, char **next)
 			if( *hlp_string == '"' ) {
 				in_string = 0;
 				*hlp_string = '\0';
-				*next = hlp_string;
+				*next = hlp_string + 1;
 				return NULL;
 			}
 		}

@@ -56,7 +56,7 @@ stack_init( int chunk_size)
 void
 stack_del( pstack_t *stack)
 {
-	if( stack->top->type == DATA_STRING )
+	if( stack->top->type == DATA_STRING && stack->top->link == DATA_NO_LINK )
 		free( stack->top->contents.string);
 		
 	stack->next--;
@@ -100,13 +100,14 @@ stack_free( pstack_t *stack)
  *             datatype - Type of the data.
  */
 void
-stack_add( pstack_t *stack, content_t data, int datatype)
+stack_add( pstack_t *stack, content_t data, uint16_t datatype, int link)
 {
 	if( stack->top == stack->end )
 		stack_realloc( stack);
 	
 	stack->next->contents = data;
 	stack->next->type     = datatype;
+	stack->next->link     = link;
 	
 	stack->next++;
 	stack->top++;
@@ -119,7 +120,7 @@ stack_addstring( pstack_t *stack, char *string)
 	char *ptr = (char*)malloc( strlen( string)+1);
 	
 	strcpy( ptr, string);
-	stack_add( stack, (content_t)ptr, DATA_STRING);
+	stack_add( stack, (content_t)ptr, DATA_STRING, DATA_NO_LINK);
 };
 
 

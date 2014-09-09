@@ -463,11 +463,11 @@ execute_stack( program_t *program, pstack_t *stack)
 	
 	
 	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
-		if( ptr->type & DATA_NUMBER ) {
-			stack_addnumber( stack, ptr->contents.number);
-		}
-		else if( ptr->type & DATA_OPERATOR ) {
+		if( ptr->type & DATA_OPERATOR ) {
 			((operator_t*)ptr->contents.ptr)->function( stack);
+		}
+		else {
+			stack_add( stack, ptr->contents, ptr->type, DATA_DIRECT_LINK);
 		}
 	}
 };
