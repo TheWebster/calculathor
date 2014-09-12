@@ -114,6 +114,13 @@ stack_add( pstack_t *stack, content_t data, uint16_t datatype, int link)
 };
 
 
+/*
+ * Adds a string to a pstack structure. When structure is full it is
+ * reallocated before adding data.
+ * 
+ * Parameters: stack    - The pstack structure to add data to.
+ *             string   - The string to add.
+ */
 void
 stack_addstring( pstack_t *stack, char *string)
 {

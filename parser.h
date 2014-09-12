@@ -49,4 +49,6 @@ void      program_free( program_t *program);
 
 void      print_program( program_t *prog);
 int       parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type);
-double    execute_number( program_t *program, pstack_t *stack);
+content_t execute_data( program_t *program, pstack_t *stack);
+#define execute_number( program, stack)   (execute_data( program, stack).number)
+#define execute_string( program, stack)   (execute_data( program, stack).string)

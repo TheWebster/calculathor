@@ -91,9 +91,14 @@ stacksize_inc( parser_t *parser, int incr)
 	                                                                                  : parser->needed_stacksize;
 };
 
-
+/* Global error string */
 char *parse_error = NULL;
 
+
+/*
+ * Sets parse_error to a string.
+ * (Usage just like printf)
+ */
 static void
 set_error( char *format, ...)
 {
@@ -116,6 +121,15 @@ set_error( char *format, ...)
 };
 
 
+/*
+ * Checks whether a number of operands from the program stack is compatible with an operator.
+ * 
+ * Parameters: parser - Parser struct to get the operands from.
+ *             op     - The operator to check.
+ *             number - The number of operands to check.
+ * 
+ * Returns: 0 if the operands are compatible with the operand and -1 if not.
+ */
 static int
 check_type( parser_t *parser, operator_t *op, int number)
 {
@@ -149,8 +163,14 @@ check_type( parser_t *parser, operator_t *op, int number)
 
 
 /*
- * Flushes the operator_stack into the program stack until it is empty or encounters
- * the op_block dummy.
+ * Flushes the operator_stack into the program stack until it is empty, encounters the
+ * "open bracket" operator or one of the operators precedence is higher than the
+ * specified.
+ * 
+ * Parameters: parser     - Parser struct with operator stack.
+ *             precedence - Only flush until an operators precedence is higher than this.
+ * 
+ * Returns: 0 when successfull, -1, when invalid types are used.
  */
 int
 flush_opstack( parser_t *parser, int precedence)
@@ -184,6 +204,13 @@ flush_opstack( parser_t *parser, int precedence)
 };
 
 
+/*
+ * Checks whether a binary operator would be valid in this position.
+ * 
+ * Parameters: parser - Parser struct.
+ * 
+ * Returns: 0 if a binary operator is valid, -1 when not.
+ */
 static int
 binary_op_valid( parser_t *parser)
 {
@@ -199,6 +226,13 @@ binary_op_valid( parser_t *parser)
 };
 
 
+/*
+ * Checks whether an unary operator would be valid in this position.
+ * 
+ * Parameters: parser - Parser struct.
+ * 
+ * Returns: 0 if an unary operator would be valid, -1 if not.
+ */
 static int
 unary_op_valid( parser_t *parser)
 {
@@ -214,6 +248,13 @@ unary_op_valid( parser_t *parser)
 };
 
 
+/*
+ * Checks whether a value would be valid in this position.
+ * 
+ * Parameters: parser - Parser struct.
+ * 
+ * Returns: 0 if a value would be valid, -1 if not.
+ */
 static int
 value_valid( parser_t *parser)
 {
@@ -233,8 +274,9 @@ value_valid( parser_t *parser)
 /*
  * Parses a string, using a given parser structure.
  * 
- * Parameters: parser - A pointer to the parser structure to be used.
- *             string - The string to be parsed.
+ * Parameters: parser       - A pointer to the parser structure to be used.
+ *             string       - The string to be parsed.
+ *             allowed_type - Only this type is allowed to return from the equation.
  * 
  * Returns: 0 on success, -1 when an error occurs.
  */
@@ -473,21 +515,20 @@ execute_stack( program_t *program, pstack_t *stack)
 };
 
 
-/*
- * Executes a program using a given pstack structure, clears the pstack and returns the result as double.
- * 
- * Parameters: program - The program top be executed.
- *             stack   - The pstack structure to be used. (Must be cleared!)
- * 
- * Returns: The result as double.
- */
-double
-execute_number( program_t *program, pstack_t *stack)
+content_t
+execute_data( program_t *program, pstack_t *stack)
 {
-	execute_stack( program, stack);
+	content_t cont;
 	
-	return stack_popnumber( stack);
+	
+	execute_stack( program, stack);
+	cont = stack->top->contents;
+	stack_del( stack);
+	
+	return cont;
 };
+
+
 	
 	
 	

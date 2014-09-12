@@ -120,6 +120,12 @@ op_ge( pstack_t *stack)
 };
 
 
+/*
+ * Compares the two last elements of a stack, and deletes them from the stack.
+ * (Helper for op_eq and op_neq)
+ * 
+ * Returns: 0 when both operands are equal, -1 when they are not equal or of different types.
+ */
 static int
 op_hlp_eq( pstack_t *stack)
 {
@@ -168,6 +174,13 @@ op_neq( pstack_t *stack)
 };
 
 
+/*
+ * Converts the last element of stack to a logical value and deletes it from the stack.
+ * (Helper for op_and and op_or)
+ * 
+ * Returns: 0 when a number is 0 or a string is empty, 1 when a number is != 0,
+ *          a string is not empty or the element is of different type.
+ */
 static int
 op_hlp_logic( pstack_t *stack)
 {
