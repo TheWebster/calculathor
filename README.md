@@ -13,10 +13,10 @@ Done
 * brackets
 * error handling
 * precalculating stacksize
+* other Datatypes (strings)
+* cross referencing
 
 ToDo
 ----
-* other Datatypes (strings)
-* cross referencing
 * preexecution
 * conditionals (C-style ternary operator)

@@ -1,8 +1,12 @@
+typedef struct pstack pstack_t;
+typedef struct pprogram program_t;
 
 typedef union {
 	double     number;
-	void       *ptr;
+	double     *ptr_number;
 	char       *string;
+	program_t  *prog;
+	void       *ptr;
 } content_t;
 
 
@@ -37,8 +41,7 @@ typedef struct {
 	uint16_t  type;
 } data_t;
 
-typedef struct pstack pstack_t;
-typedef struct pprogram program_t;
+typedef int (*token_callback)( data_t*, char*);
 
 extern char *parse_error;
 pstack_t  *stack_init( int chunk_size);
@@ -48,7 +51,7 @@ program_t *program_init();
 void      program_free( program_t *program);
 
 void      print_program( program_t *prog);
-int       parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type);
+int       parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type, token_callback token_cb);
 content_t execute_data( program_t *program, pstack_t *stack);
 #define execute_number( program, stack)   (execute_data( program, stack).number)
 #define execute_string( program, stack)   (execute_data( program, stack).string)

@@ -277,11 +277,12 @@ value_valid( parser_t *parser)
  * Parameters: parser       - A pointer to the parser structure to be used.
  *             string       - The string to be parsed.
  *             allowed_type - Only this type is allowed to return from the equation.
+ *             token_cb     - Callback function to recognize external types.
  * 
  * Returns: 0 on success, -1 when an error occurs.
  */
 static int
-parse( parser_t *parser, char *string, uint16_t allowed_type)
+parse( parser_t *parser, char *string, uint16_t allowed_type, token_callback token_cb)
 {
 	parser->variable = string;
 	
@@ -311,8 +312,19 @@ parse( parser_t *parser, char *string, uint16_t allowed_type)
 					parser->last_token = parser->program->top;
 				}
 				else {
-					set_error( "Unknown variable '%s'.", parser->variable);
-					return -1;
+					data_t dat;
+					
+					
+					if( token_cb( &dat, parser->variable) == 0 ) {
+						stack_add( parser->program, dat.contents, dat.type, dat.link);
+						stacksize_inc( parser, 1);
+						
+						parser->last_token = parser->program->top;
+					}
+					else {
+						set_error( "Unknown variable '%s'.", parser->variable);
+						return -1;
+					}
 				}
 			}
 		}
@@ -445,16 +457,20 @@ program_free( program_t *program)
 /*
  * Parses a string and returns the resulting program.
  * 
- * Parameters: string - The string to be parsed.
+ * Parameters: string       - The string to be parsed.
+ *             program      - A pointer to an initialized program structure.
+ *             stacksize    - The needed stacksize for execution will be stored here.
+ *             allowed_type - Only this type is allowed to be returned by the equation.
+ *             token_cb     - Callback function to recognize external types.
  * 
  * Returns: A pointer to the resulting program, or NULL when an error occurs.
  */
 int
-parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type)
+parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type, token_callback token_cb)
 {
 	parser_t  *parser  = parser_init();
 	
-	if( parse( parser, string, allowed_type) == -1 ) {
+	if( parse( parser, string, allowed_type, token_cb) == -1 ) {
 		stack_free( parser_finalize( parser));
 		return -1;
 	}
@@ -475,12 +491,31 @@ print_stack( pstack_t *stack)
 	
 	
 	for( ptr = stack->data; ptr <= stack->top; ptr++ ) {
+		if( ptr->link == DATA_NO_LINK )
+			printf( "  VALUE       ");
+		else if( ptr->link == DATA_DIRECT_LINK )
+			printf( "  DIRECT_LINK ");
+		else if( ptr->link == DATA_CONTENT_LINK ) {
+			printf( "  CONTENT_LINK");
+			
+			if( ptr->type & DATA_NUMBER )
+				printf( "  NUMBER    %p\n", ptr->contents.ptr);
+			else if( ptr->type & DATA_STRING )
+				printf( "  STRING    %p\n", ptr->contents.ptr);
+			else
+				printf( "  EXTERNAL  %p\n", ptr->contents.ptr);
+			
+			continue;
+		}
+		
 		if( ptr->type & DATA_NUMBER )
-			printf( "   NUBER:  %f\n", ptr->contents.number);
+			printf( "  NUMBER    %f\n", ptr->contents.number);
 		else if( ptr->type & DATA_STRING )
-			printf( "   STRING: %s\n", ptr->contents.string);
+			printf( "  STRING    %s\n", ptr->contents.string);
 		else if( ptr->type & DATA_OPERATOR )
-			printf( "   OP      %s\n", ((operator_t*)ptr->contents.ptr)->string);
+			printf( "  OP        %s\n", ((operator_t*)ptr->contents.ptr)->string);
+		else
+			printf( "  EXTERNAL  %p\n", ptr->contents.ptr);
 	}
 };
 
@@ -501,16 +536,30 @@ print_program( program_t *prog)
 static void
 execute_stack( program_t *program, pstack_t *stack)
 {
-	data_t *ptr;
+	data_t    *ptr;
+	content_t cont;
 	
 	
 	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
 		if( ptr->type & DATA_OPERATOR ) {
 			((operator_t*)ptr->contents.ptr)->function( stack);
+			continue;
 		}
-		else {
+		else if( ptr->link == DATA_CONTENT_LINK ) {
+			
+			cont = execute_data( ptr->contents.prog, stack);
+			stack_add( stack, cont, ptr->type, DATA_DIRECT_LINK);
+		}	
+		else if( ptr->link == DATA_DIRECT_LINK ) {
+			if( ptr->type & DATA_NUMBER )
+				cont.number = *ptr->contents.ptr_number;
+			else
+				cont = ptr->contents;
+			
+			stack_add( stack, cont, ptr->type, DATA_DIRECT_LINK);
+		}
+		else
 			stack_add( stack, ptr->contents, ptr->type, DATA_DIRECT_LINK);
-		}
 	}
 };
 

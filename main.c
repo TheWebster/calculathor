@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "parser.h"
 
@@ -33,39 +34,97 @@ get_string()
 		string = (char*)realloc( string, (i + 2)*sizeof(char));
 		string[i++] = c;
 	}
+	string[i] = '\0';
 	
 	return string;
+};
+
+typedef struct {
+	char      name[32];
+	uint16_t  type;
+	program_t *prog;
+} var_t;
+
+var_t varlist[] = {
+	{ "number1", DATA_NUMBER, NULL },
+	{ "number2", DATA_NUMBER, NULL },
+	{ "string1", DATA_STRING, NULL },
+	{ "string2", DATA_STRING, NULL },
+	
+	{ ""       , 0          , NULL }
+};
+
+
+static int
+symbol_parser( data_t *data, char *string)
+{
+	var_t *ptr;
+	
+	
+	for( ptr = varlist; ptr->type != 0; ptr++ ) {
+		if( strcmp( ptr->name, string) == 0 ) {
+			data->contents.prog = ptr->prog;
+			data->type          = ptr->type;
+			data->link          = DATA_CONTENT_LINK;
+			
+			return 0;
+		}
+	}
+	
+	return -1;
 };
 
 		
 int main( int argc, char *argv[])
 {
-	int       stacks   = 0;
-	program_t *program = program_init();
-	pstack_t  *stack;
-	char      *string;
+	var_t *var;
+	int   stack_size = 0;
+	char *string = NULL;
+	pstack_t *ex_stack;
 	
 	
-	printf( "Enter string:\n");
-	string = get_string();
-	
-	strip_string( string);
-	printf( "Stripped string: \"%s\"\n\n", string);
-	
-	if( parse_expression( string, program, &stacks, DATA_NUMBER) == -1 ) {
-		printf( "Error: %s\n", parse_error);
-		program_free( program);
+	for( var = varlist; var->type != 0; var++ ) {
+		int  stacks;
+		
+		
+		var->prog = program_init();
 		free( parse_error);
-		return 1;
+		parse_error = NULL;
+		do {
+			if( parse_error )
+				printf( "ERROR: %s\n", parse_error);
+				
+			free( string);
+			printf( "%s: ", var->name);
+			string = get_string();
+			strip_string( string);
+			printf( "Stripped string: %s\n", string);
+		} while( parse_expression( string, var->prog, &stacks, var->type, symbol_parser) == -1 );
+		
+		stack_size = (stack_size > stacks) ? stack_size
+		                                   : stacks;
+		printf( "\nNeeded stacksize: %d\n\n\n", stack_size);
 	}
 	
-	print_program( program);
-	printf( "Needed stacksize: %d\n\n", stacks);
-	stack = stack_init( stacks);
-	
-	printf( "\nResult: %f\n", execute_number( program, stack));
-	program_free( program);
-	stack_free( stack);
+	free( string);
+	while( 1 ) {
+		data_t dat;
+		
+		
+		ex_stack = stack_init( stack_size);
+		
+		printf( "Variable: ");
+		string = get_string();
+		if( symbol_parser( &dat, string) == 0 ) {
+			print_program( dat.contents.prog);
+			
+			if( dat.type == DATA_NUMBER )
+				printf( "Result: %f\n\n", execute_number( dat.contents.prog, ex_stack));
+			else if( dat.type == DATA_STRING )
+				printf( "Result: %s\n\n", execute_string( dat.contents.prog, ex_stack));
+		}
+		stack_free( ex_stack);
+	}
 	
 	return 0;
 };
