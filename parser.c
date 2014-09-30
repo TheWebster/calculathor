@@ -27,6 +27,8 @@ typedef struct {
 struct pprogram {
 	pstack_t *code;
 	data_t   preexec;
+	
+	pstack_t *preexec_queue;
 };
 
 
@@ -477,7 +479,7 @@ parse_expression( char *string, program_t *program, int *stacksize, uint16_t all
 	else {
 		*stacksize = (parser->needed_stacksize > *stacksize) ? parser->needed_stacksize
 		                                                     : *stacksize;
-		program->code      = parser_finalize( parser);
+		program->code = parser_finalize( parser);
 	}
 	
 	return 0;
@@ -567,8 +569,10 @@ execute_stack( program_t *program, pstack_t *stack)
 content_t
 execute_data( program_t *program, pstack_t *stack)
 {
-	content_t cont;
+	content_t cont = 0;
 	
+	if( program == NULL )
+		return cont;
 	
 	execute_stack( program, stack);
 	cont = stack->top->contents;
