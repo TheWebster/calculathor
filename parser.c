@@ -510,8 +510,12 @@ print_stack( pstack_t *stack)
 			continue;
 		}
 		
-		if( ptr->type & DATA_NUMBER )
-			printf( "  NUMBER    %f\n", ptr->contents.number);
+		if( ptr->type & DATA_NUMBER ) {
+			if( ptr->link == DATA_DIRECT_LINK )
+				printf( "  NUMBER    %f\n", *ptr->contents.ptr_number);
+			else
+				printf( "  NUMBER    %f\n", ptr->contents.number);
+		}
 		else if( ptr->type & DATA_STRING )
 			printf( "  STRING    %s\n", ptr->contents.string);
 		else if( ptr->type & DATA_OPERATOR )
@@ -569,7 +573,7 @@ execute_stack( program_t *program, pstack_t *stack)
 content_t
 execute_data( program_t *program, pstack_t *stack)
 {
-	content_t cont = 0;
+	content_t cont = {0};
 	
 	if( program == NULL )
 		return cont;
