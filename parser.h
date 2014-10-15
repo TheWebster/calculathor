@@ -16,6 +16,7 @@ typedef union {
 	char       *string;
 	program_t  *prog;
 	void       *ptr;
+	int        integer;
 } content_t;
 
 
@@ -71,3 +72,4 @@ int       parse_expression( char *string, program_t *program, int *stacksize, ui
 content_t execute_data( program_t *program, pstack_t *stack);
 #define execute_number( program, stack)   (execute_data( program, stack).number)
 #define execute_string( program, stack)   (execute_data( program, stack).string)
+#define execute_int( program, stack)      (execute_data( program, stack).integer)

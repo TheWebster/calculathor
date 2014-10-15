@@ -14,6 +14,7 @@
 #include <time.h>
 
 #include "parser.h"
+#include "demo_symbols.h"
 
 #define READ_FILE   "./READ_FILE"
 #define LINE_LENGTH 255
@@ -55,69 +56,6 @@ get_string()
 	string[i] = '\0';
 	
 	return string;
-};
-
-typedef struct {
-	char      name[32];
-	data_t    data;
-	
-} var_t;
-
-#define VAR( name, type, content)    { (name), { (content_t)(content), DATA_NO_LINK, (type)}}
-#define VAR_END                      { "", { (content_t)0.0, 0, 0}} 
-
-var_t varlist[] = {
-	VAR( "number1", DATA_NUMBER, NULL),
-	VAR( "number2", DATA_NUMBER, NULL),
-	VAR( "string1", DATA_STRING, NULL),
-	VAR( "string2", DATA_STRING, NULL),
-	VAR_END
-};
-
-var_t runtime_vars[] = {
-	VAR( "minutes", DATA_NUMBER, 0.0),
-	VAR( "seconds", DATA_NUMBER, 0.0),
-	VAR_END
-};
-
-
-static var_t *
-get_var( char *string, var_t *vars)
-{
-	var_t *ptr;
-	
-	
-	for( ptr = vars; ptr->data.type != 0; ptr++ ) {
-		if( strcmp( ptr->name, string) == 0 )
-			return ptr;
-	}
-	return NULL;
-};
-
-
-static int
-symbol_parser( data_t *data, char *string)
-{
-	var_t *ptr = get_var( string, varlist);
-	
-	
-	if( ptr ) {
-		data->contents.prog = ptr->data.contents.prog;
-		data->type          = ptr->data.type;
-		data->link          = DATA_CONTENT_LINK;
-		return 0;
-	}
-	
-	ptr = get_var( string, runtime_vars);
-	
-	if( ptr ) {
-		data->contents = ptr->data.contents;
-		data->type     = ptr->data.type;
-		data->link     = DATA_DIRECT_LINK;
-		return 0;
-	}
-	
-	return -1;
 };
 
 
@@ -214,6 +152,14 @@ int main( int argc, char *argv[])
 				printf( "Result: %f\n\n", execute_number( var->data.contents.prog, ex_stack));
 			else if( var->data.type == DATA_STRING )
 				printf( "Result: %s\n\n", execute_string( var->data.contents.prog, ex_stack));
+			else if( var->data.type == DATA_ALIGN ) {
+				int align = execute_align( var->data.contents.prog, ex_stack);
+				
+				if( align == 0 ) printf( "Result: 'left'\n\n");
+				else if( align == 1 ) printf( "Result: 'right'\n\n");
+				else if( align == 2 ) printf( "Result: 'center'\n\n");
+			}
+				
 		}
 		stack_free( ex_stack);
 	}
