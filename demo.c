@@ -1,3 +1,11 @@
+/* ****************************************************************** *\
+ * demo.c                                                             *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Contains a reference application for calculathor.     *
+\* ****************************************************************** */
 
 #include <stdio.h>
 #include <stdint.h>

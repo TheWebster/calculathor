@@ -1,3 +1,11 @@
+/* ****************************************************************** *\
+ * parser.c                                                           *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Parsing functions.                                    *
+\* ****************************************************************** */
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -27,8 +35,6 @@ typedef struct {
 struct pprogram {
 	pstack_t *code;
 	data_t   preexec;
-	
-	pstack_t *preexec_queue;
 };
 
 
@@ -85,7 +91,7 @@ parser_finalize( parser_t *parser)
  * Parameters: parser - pointer to parser struct.
  *             incr   - amount by which current_stacksize should be incremented.
  */
-void
+static void
 stacksize_inc( parser_t *parser, int incr)
 {
 	parser->current_stacksize += incr;
@@ -174,7 +180,7 @@ check_type( parser_t *parser, operator_t *op, int number)
  * 
  * Returns: 0 when successfull, -1, when invalid types are used.
  */
-int
+static int
 flush_opstack( parser_t *parser, int precedence)
 {
 	while( !stack_isempty( parser->operator_stack) ) {
@@ -570,6 +576,16 @@ execute_stack( program_t *program, pstack_t *stack)
 };
 
 
+/*
+ * Executes a program using a given pstack structure and
+ * returns the result as content.
+ * 
+ * Parameters: program - The program to be executed.
+ *             stack   - The pstack structure to be used. (Must be cleared and will be cleared after use!)
+ * 
+ * Returns: The result as a content_t or {0} when program is NULL.
+ *          When the return value is of type DATA_STRING it must be freed!
+ */
 content_t
 execute_data( program_t *program, pstack_t *stack)
 {

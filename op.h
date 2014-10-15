@@ -1,3 +1,12 @@
+/* ****************************************************************** *\
+ * op.h                                                               *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Definition of operators.                              *
+\* ****************************************************************** */
+
 typedef void (*op_t)(pstack_t*);
 
 typedef struct {

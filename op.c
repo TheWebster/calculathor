@@ -1,3 +1,11 @@
+/* ****************************************************************** *\
+ * op.c                                                               *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Definition of operators.                              *
+\* ****************************************************************** */
 
 #include <stdint.h>
 #include <stdlib.h>

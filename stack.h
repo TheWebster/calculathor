@@ -1,12 +1,20 @@
+/* ****************************************************************** *\
+ * stack.h                                                            *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Functions to manipulate stacks.                       *
+\* ****************************************************************** */
 
 #define p_realloc( ptr, type, size)   (ptr) = (type*)realloc( (ptr), (size)*sizeof(type))
 
 
 struct pstack {
-	data_t *data;
-	data_t *end;
-	data_t *top;
-	data_t *next;
+	data_t *data;  /* first field of data ( DO NOT ALTER! ) */
+	data_t *end;   /* final field of data */
+	data_t *top;   /* last added field */
+	data_t *next;  /* next field to be added*/
 	
 	int    size;
 	int    chunk_size;

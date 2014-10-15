@@ -1,3 +1,12 @@
+/* ****************************************************************** *\
+ * parser.h                                                           *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Parsing functions.                                    *
+\* ****************************************************************** */
+
 typedef struct pstack pstack_t;
 typedef struct pprogram program_t;
 
@@ -41,6 +50,13 @@ typedef struct {
 	uint16_t  type;
 } data_t;
 
+/** int                                           **/
+/** token_callback( data_t *data, char *string)   **/
+/* Callback funktion to recognize symbols (variables, constants,...).
+ * Parameters: data   - found data is stored here.
+ *             string - name of the symbol.
+ * Returns: 0 when symbol is found, -1 when not.
+ */
 typedef int (*token_callback)( data_t*, char*);
 
 extern char *parse_error;

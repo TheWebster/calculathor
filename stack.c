@@ -1,3 +1,11 @@
+/* ****************************************************************** *\
+ * stack.c                                                            *
+ *                                                                    *
+ * Project:     CalculaThor                                           *
+ * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
+ *                                                                    *
+ * Description: Functions to manipulate stacks.                       *
+\* ****************************************************************** */
 
 #include <stdint.h>
 #include <stdlib.h>
