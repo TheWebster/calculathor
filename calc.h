@@ -1,23 +1,14 @@
 /* ****************************************************************** *\
- * parser.h                                                           *
+ * calc.h                                                             *
  *                                                                    *
  * Project:     CalculaThor                                           *
  * Author:      Christian Weber (ChristianWeber802@gmx.net)           *
  *                                                                    *
- * Description: Parsing functions.                                    *
+ * Description: User include file.                                    *
 \* ****************************************************************** */
 
 typedef struct pstack pstack_t;
 typedef struct pprogram program_t;
-
-typedef union {
-	double     number;
-	double     *ptr_number;
-	char       *string;
-	program_t  *prog;
-	void       *ptr;
-	int        integer;
-} content_t;
 
 
 #define DATA_OPERATOR  (1 << 0)
@@ -45,20 +36,16 @@ typedef union {
 #define DATA_DIRECT_LINK   2
 
 
-typedef struct {
-	content_t contents;
-	int       link;
-	uint16_t  type;
-} data_t;
-
 /** int                                           **/
-/** token_callback( data_t *data, char *string)   **/
+/** token_callback( void *data, uint16_t *type, int *link, char *string)   **/
 /* Callback funktion to recognize symbols (variables, constants,...).
  * Parameters: data   - found data is stored here.
+ *             type   - type of found data is stored here.
+ *             link   - link type of found data is stored here.
  *             string - name of the symbol.
  * Returns: 0 when symbol is found, -1 when not.
  */
-typedef int (*token_callback)( data_t*, char*);
+typedef int (*token_callback)( void**, uint16_t*, int*, char*);
 
 extern char *parse_error;
 pstack_t  *stack_init( int chunk_size);
@@ -69,7 +56,6 @@ void      program_free( program_t *program);
 
 void      print_program( program_t *prog);
 int       parse_expression( char *string, program_t *program, int *stacksize, uint16_t allowed_type, token_callback token_cb);
-content_t execute_data( program_t *program, pstack_t *stack);
-#define execute_number( program, stack)   (execute_data( program, stack).number)
-#define execute_string( program, stack)   (execute_data( program, stack).string)
-#define execute_int( program, stack)      (execute_data( program, stack).integer)
+void      *execute_data( program_t *program, pstack_t *stack);
+#define   execute_number( program, stack)  ((double*)execute_data((program), (stack)))
+#define   execute_string( program, stack)  ((char*)execute_data((program), (stack)))

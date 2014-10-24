@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "parser.h"
+#include "calc.h"
 #include "demo_symbols.h"
 
 #define READ_FILE   "./READ_FILE"
@@ -82,9 +82,9 @@ read_file( FILE *file, int *stacksiz)
 			return -1;
 		}
 		
-		var->data.contents.prog = program_init();
+		var->stuff.prog = program_init();
 		strip_string( value);
-		if( parse_expression( value, var->data.contents.prog, stacksiz, var->data.type, symbol_parser) == -1 ) {
+		if( parse_expression( value, var->stuff.prog, stacksiz, var->type, symbol_parser) == -1 ) {
 			printf( "Line %d: %s\n", lineno, parse_error);
 			return -1;
 		}
@@ -116,8 +116,8 @@ int main( int argc, char *argv[])
 	}
 	
 	// associate direct links
-	runtime_vars[0].data.contents.ptr_number = &minutes;
-	runtime_vars[1].data.contents.ptr_number = &seconds;
+	runtime_vars[0].stuff.ptr = (void*)&seconds;
+	runtime_vars[1].stuff.ptr = (void*)&minutes;
 	
 	if( read_file( file, &stack_size) == -1 )
 		return 1;
@@ -135,7 +135,7 @@ int main( int argc, char *argv[])
 		printf( "Variable: ");
 		string = get_string();
 		if( (var = get_var( string, varlist)) != NULL ) {
-			if( var->data.contents.prog == NULL ) {
+			if( var->stuff.prog == NULL ) {
 				printf( "'%s' is uninitialized.\n", string);
 				continue;
 			}
@@ -145,19 +145,19 @@ int main( int argc, char *argv[])
 			minutes = br_tim->tm_min;
 			seconds = br_tim->tm_sec;
 			
-			printf( "   Address: %p\n", var->data.contents.prog);
-			print_program( var->data.contents.prog);
+			printf( "   Address: %p\n", var->stuff.prog);
+			print_program( var->stuff.prog);
 			
-			if( var->data.type == DATA_NUMBER )
-				printf( "Result: %f\n\n", execute_number( var->data.contents.prog, ex_stack));
-			else if( var->data.type == DATA_STRING )
-				printf( "Result: %s\n\n", execute_string( var->data.contents.prog, ex_stack));
-			else if( var->data.type == DATA_ALIGN ) {
-				int align = execute_align( var->data.contents.prog, ex_stack);
+			if( var->type == DATA_NUMBER )
+				printf( "Result: %f\n\n", *execute_number( var->stuff.prog, ex_stack));
+			else if( var->type == DATA_STRING )
+				printf( "Result: %s\n\n", execute_string( var->stuff.prog, ex_stack));
+			else if( var->type == DATA_ALIGN ) {
+				int align = *execute_align( var->stuff.prog, ex_stack);
 				
-				if( align == 0 ) printf( "Result: 'left'\n\n");
-				else if( align == 1 ) printf( "Result: 'right'\n\n");
-				else if( align == 2 ) printf( "Result: 'center'\n\n");
+				if     ( align == ALIGN_LEFT   ) printf( "Result: 'left'\n\n");
+				else if( align == ALIGN_RIGHT  ) printf( "Result: 'right'\n\n");
+				else if( align == ALIGN_CENTER ) printf( "Result: 'center'\n\n");
 			}
 				
 		}

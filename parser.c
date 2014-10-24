@@ -13,8 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
+#include "calc.h"
 #include "op.h"
+#include "data.h"
 #include "stack.h"
 
 
@@ -323,7 +324,7 @@ parse( parser_t *parser, char *string, uint16_t allowed_type, token_callback tok
 					data_t dat;
 					
 					
-					if( token_cb( &dat, parser->variable) == 0 ) {
+					if( token_cb( &dat.contents.ptr, &dat.type, &dat.link, parser->variable) == 0 ) {
 						stack_add( parser->program, dat.contents, dat.type, dat.link);
 						stacksize_inc( parser, 1);
 						
@@ -549,26 +550,20 @@ static void
 execute_stack( program_t *program, pstack_t *stack)
 {
 	data_t    *ptr;
-	content_t cont;
 	
 	
 	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
 		if( ptr->type & DATA_OPERATOR ) {
-			((operator_t*)ptr->contents.ptr)->function( stack);
+			ptr->contents.op->function( stack);
 			continue;
 		}
-		else if( ptr->link == DATA_CONTENT_LINK ) {
-			
-			cont = execute_data( ptr->contents.prog, stack);
-			stack_add( stack, cont, ptr->type, DATA_DIRECT_LINK);
-		}	
+		else if( ptr->link == DATA_CONTENT_LINK )
+			execute_stack( ptr->contents.prog, stack);
 		else if( ptr->link == DATA_DIRECT_LINK ) {
 			if( ptr->type & DATA_NUMBER )
-				cont.number = *ptr->contents.ptr_number;
+				stack_addnumber( stack, *ptr->contents.ptr_number);
 			else
-				cont = ptr->contents;
-			
-			stack_add( stack, cont, ptr->type, DATA_DIRECT_LINK);
+				stack_add( stack, ptr->contents, ptr->type, DATA_DIRECT_LINK);
 		}
 		else
 			stack_add( stack, ptr->contents, ptr->type, DATA_DIRECT_LINK);
@@ -583,22 +578,19 @@ execute_stack( program_t *program, pstack_t *stack)
  * Parameters: program - The program to be executed.
  *             stack   - The pstack structure to be used. (Must be cleared and will be cleared after use!)
  * 
- * Returns: The result as a content_t or {0} when program is NULL.
- *          When the return value is of type DATA_STRING it must be freed!
+ * Returns: A void pointer to the result or NULL when programm is NULL.
  */
-content_t
+void *
 execute_data( program_t *program, pstack_t *stack)
 {
-	content_t cont = {0};
-	
 	if( program == NULL )
-		return cont;
+		return NULL;
 	
 	execute_stack( program, stack);
-	cont = stack->top->contents;
-	stack_del( stack);
 	
-	return cont;
+	if( stack->top->type == DATA_NUMBER ) return &stack->top->contents.number;
+	
+	return stack->top->contents.ptr;
 };
 
 

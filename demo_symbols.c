@@ -11,32 +11,32 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "parser.h"
+#include "calc.h"
 #include "demo_symbols.h"
 
 
-#define VAR( name, type, content)    { (name), { (content_t)(content), DATA_NO_LINK, (type)}}
-#define VAR_END                      { "", { (content_t)0.0, 0, 0}} 
+
+#define VAR_END                      { "", 0, (stuff_t)NULL} 
 
 var_t varlist[] = {
-	VAR( "number1", DATA_NUMBER, NULL),
-	VAR( "number2", DATA_NUMBER, NULL),
-	VAR( "string1", DATA_STRING, NULL),
-	VAR( "string2", DATA_STRING, NULL),
-	VAR( "align"  , DATA_ALIGN , NULL),
+	{ "number1", DATA_NUMBER, (stuff_t)NULL },
+	{ "number2", DATA_NUMBER, (stuff_t)NULL },
+	{ "string1", DATA_STRING, (stuff_t)NULL },
+	{ "string2", DATA_STRING, (stuff_t)NULL },
+	{ "align"  , DATA_ALIGN , (stuff_t)NULL },
 	VAR_END
 };
 
 var_t runtime_vars[] = {
-	VAR( "minutes", DATA_NUMBER, 0.0),
-	VAR( "seconds", DATA_NUMBER, 0.0),
+	{ "seconds", DATA_NUMBER, (stuff_t)NULL },
+	{ "minutes", DATA_NUMBER, (stuff_t)NULL },
 	VAR_END
 };
 
 var_t sym_align[] = {
-	VAR( "left"  , DATA_ALIGN, 0),
-	VAR( "right" , DATA_ALIGN, 1),
-	VAR( "center", DATA_ALIGN, 2),
+	{ "left"  , DATA_ALIGN, (stuff_t)ALIGN_LEFT   },
+	{ "center", DATA_ALIGN, (stuff_t)ALIGN_CENTER },
+	{ "right" , DATA_ALIGN, (stuff_t)ALIGN_RIGHT  },
 	VAR_END
 };
 
@@ -47,7 +47,7 @@ get_var( char *string, var_t *vars)
 	var_t *ptr;
 	
 	
-	for( ptr = vars; ptr->data.type != 0; ptr++ ) {
+	for( ptr = vars; ptr->type != 0; ptr++ ) {
 		if( strcmp( ptr->name, string) == 0 )
 			return ptr;
 	}
@@ -56,33 +56,33 @@ get_var( char *string, var_t *vars)
 
 
 int
-symbol_parser( data_t *data, char *string)
+symbol_parser( void **data, uint16_t *type, int *link, char *string)
 {
 	var_t *ptr = get_var( string, varlist);
 	
 	
 	if( ptr ) {
-		data->contents.prog = ptr->data.contents.prog;
-		data->type          = ptr->data.type;
-		data->link          = DATA_CONTENT_LINK;
+		*data = (void*)ptr->stuff.prog;
+		*type = ptr->type;
+		*link = DATA_CONTENT_LINK;
 		return 0;
 	}
 	
 	ptr = get_var( string, runtime_vars);
 	
 	if( ptr ) {
-		data->contents = ptr->data.contents;
-		data->type     = ptr->data.type;
-		data->link     = DATA_DIRECT_LINK;
+		*data = ptr->stuff.ptr;
+		*type = ptr->type;
+		*link = DATA_DIRECT_LINK;
 		return 0;
 	}
 	
 	ptr = get_var( string, sym_align);
 	
 	if( ptr ) {
-		data->contents = ptr->data.contents;
-		data->type     = ptr->data.type;
-		data->link     = DATA_NO_LINK;
+		*data = (void*)&ptr->stuff.number;
+		*type = ptr->type;
+		*link = DATA_NO_LINK;
 		return 0;
 	}
 	

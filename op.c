@@ -11,8 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
+#include "calc.h"
 #include "op.h"
+#include "data.h"
 #include "stack.h"
 
 

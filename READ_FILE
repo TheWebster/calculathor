@@ -1,3 +1,3 @@
 number1: seconds
-number2: minutes
+number2: number1 +56
 align: right
