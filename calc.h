@@ -11,23 +11,23 @@ typedef struct pstack pstack_t;
 typedef struct pprogram program_t;
 
 
-#define DATA_OPERATOR  (1 << 0)
-#define DATA_NUMBER    (1 << 1)
-#define DATA_STRING    (1 << 2)
+#define DATA_NUMBER    (1 << 0)
+#define DATA_STRING    (1 << 1)
 
-#define DATA_EXTERN_01 (1 << 3)
-#define DATA_EXTERN_02 (1 << 4)
-#define DATA_EXTERN_03 (1 << 5)
-#define DATA_EXTERN_04 (1 << 6)
-#define DATA_EXTERN_05 (1 << 7)
-#define DATA_EXTERN_06 (1 << 8)
-#define DATA_EXTERN_07 (1 << 9)
-#define DATA_EXTERN_08 (1 << 10)
-#define DATA_EXTERN_09 (1 << 11)
-#define DATA_EXTERN_10 (1 << 12)
-#define DATA_EXTERN_11 (1 << 13)
-#define DATA_EXTERN_12 (1 << 14)
-#define DATA_EXTERN_13 (1 << 15)
+#define DATA_EXTERN_01 (1 << 2)
+#define DATA_EXTERN_02 (1 << 3)
+#define DATA_EXTERN_03 (1 << 4)
+#define DATA_EXTERN_04 (1 << 5)
+#define DATA_EXTERN_05 (1 << 6)
+#define DATA_EXTERN_06 (1 << 7)
+#define DATA_EXTERN_07 (1 << 8)
+#define DATA_EXTERN_08 (1 << 9)
+#define DATA_EXTERN_09 (1 << 10)
+#define DATA_EXTERN_10 (1 << 11)
+#define DATA_EXTERN_11 (1 << 12)
+#define DATA_EXTERN_12 (1 << 13)
+#define DATA_EXTERN_13 (1 << 14)
+#define DATA_EXTERN_14 (1 << 15)
 
 #define DATA_ANY       UINT16_MAX
 

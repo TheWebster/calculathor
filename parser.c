@@ -155,7 +155,7 @@ check_type( parser_t *parser, operator_t *op, int number)
 		data_t *d = parser->program->top - i;
 		
 		
-		if( d->type == DATA_OPERATOR ) {
+		if( d->link == DATA_OPERATOR ) {
 			operator_t *opa = (operator_t*)(d->contents.ptr);
 			
 			if( op->needed_type & opa->returned_type ) continue;
@@ -226,7 +226,7 @@ binary_op_valid( parser_t *parser)
 {
 	if( parser->last_token == NULL ) return -1;
 	
-	if( parser->last_token->type == DATA_OPERATOR ) {
+	if( parser->last_token->link == DATA_OPERATOR ) {
 		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
 		
 		if( op->op_type != OP_TYPE_CLOSE_BRACKET ) return -1;
@@ -248,7 +248,7 @@ unary_op_valid( parser_t *parser)
 {
 	if( parser->last_token == NULL ) return 0;
 	
-	if( parser->last_token->type == DATA_OPERATOR ) {
+	if( parser->last_token->link == DATA_OPERATOR ) {
 		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
 		
 		if( op->op_type == OP_TYPE_OPEN_BRACKET || op->op_type == OP_TYPE_UNARY_NOT ) return 0;
@@ -271,7 +271,7 @@ value_valid( parser_t *parser)
 	if( parser->last_token == NULL )
 		return 0;
 	
-	if( parser->last_token->type == DATA_OPERATOR ) {
+	if( parser->last_token->link == DATA_OPERATOR ) {
 		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
 		
 		if( op->op_type != OP_TYPE_CLOSE_BRACKET ) return 0;
@@ -403,8 +403,8 @@ parse( parser_t *parser, char *string, uint16_t allowed_type, token_callback tok
 		parser->variable = parser->next;
 	}
 	
-	if( parser->last_token->type == DATA_OPERATOR ) {
-		operator_t *op = (operator_t*)parser->last_token->contents.ptr;
+	if( parser->last_token->link == DATA_OPERATOR ) {
+		operator_t *op = parser->last_token->contents.op;
 		
 		if( op->op_type != OP_TYPE_CLOSE_BRACKET ) {
 			set_error( "Expected value after operator '%s'.", op->string);
@@ -418,7 +418,8 @@ parse( parser_t *parser, char *string, uint16_t allowed_type, token_callback tok
 	
 	if( flush_opstack( parser, 10) == -1 ) return -1;
 	
-	if( parser->program->top->type == DATA_OPERATOR ) {
+	/* check allowed type */
+	if( parser->program->top->link == DATA_OPERATOR ) {
 		operator_t *op = stack_getoperator( parser->program);
 		
 		if( allowed_type & op->returned_type ) return 0;
@@ -505,6 +506,8 @@ print_stack( pstack_t *stack)
 	
 	
 	for( ptr = stack->data; ptr <= stack->top; ptr++ ) {
+		printf( "  %p", ptr);
+		
 		if( ptr->link == DATA_NO_LINK )
 			printf( "  VALUE       ");
 		else if( ptr->link == DATA_DIRECT_LINK )
@@ -521,6 +524,11 @@ print_stack( pstack_t *stack)
 			
 			continue;
 		}
+		else if( ptr->link == DATA_OPERATOR ) {
+			printf( "  OP          ");
+			printf( "            %s\n", ptr->contents.op->string);
+			continue;
+		}
 		
 		if( ptr->type & DATA_NUMBER ) {
 			if( ptr->link == DATA_DIRECT_LINK )
@@ -530,8 +538,6 @@ print_stack( pstack_t *stack)
 		}
 		else if( ptr->type & DATA_STRING )
 			printf( "  STRING    %s\n", ptr->contents.string);
-		else if( ptr->type & DATA_OPERATOR )
-			printf( "  OP        %s\n", ((operator_t*)ptr->contents.ptr)->string);
 		else
 			printf( "  EXTERNAL  %p\n", ptr->contents.ptr);
 	}
@@ -558,7 +564,7 @@ execute_stack( program_t *program, pstack_t *stack)
 	
 	
 	for( ptr = program->code->data; ptr <= program->code->top; ptr++ ) {
-		if( ptr->type & DATA_OPERATOR ) {
+		if( ptr->link == DATA_OPERATOR ) {
 			ptr->contents.op->function( stack);
 			continue;
 		}

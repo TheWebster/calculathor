@@ -23,3 +23,5 @@ typedef struct {
 } data_t;
 
 
+
+#define DATA_OPERATOR      3

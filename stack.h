@@ -26,7 +26,7 @@ pstack_t *stack_init( int chunk_size);
 void     stack_add( pstack_t *stack, content_t data, uint16_t datatype, int link);
 #define  stack_addnumber( stack, number)      stack_add( (stack), (content_t)(number), DATA_NUMBER, DATA_NO_LINK)
 void     stack_addstring( pstack_t *stack, char *string);
-#define  stack_addoperator( stack, operator)  stack_add( (stack), (content_t)((void*)(operator)), DATA_OPERATOR, DATA_NO_LINK)
+#define  stack_addoperator( stack, operator)  stack_add( (stack), (content_t)((void*)(operator)), 0, DATA_OPERATOR)
 
 #define  stack_getoperator( stack)            ((operator_t*)(stack)->top->contents.ptr)
 
