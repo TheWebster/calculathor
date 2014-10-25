@@ -36,7 +36,7 @@ typedef struct pprogram program_t;
 #define DATA_DIRECT_LINK   2
 
 
-/** int                                           **/
+/** int                                                                    **/
 /** token_callback( void *data, uint16_t *type, int *link, char *string)   **/
 /* Callback funktion to recognize symbols (variables, constants,...).
  * Parameters: data   - found data is stored here.

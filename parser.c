@@ -35,6 +35,7 @@ typedef struct {
 
 struct pprogram {
 	pstack_t *code;
+	int      stacksize;
 	data_t   preexec;
 };
 
@@ -326,7 +327,10 @@ parse( parser_t *parser, char *string, uint16_t allowed_type, token_callback tok
 					
 					if( token_cb( &dat.contents.ptr, &dat.type, &dat.link, parser->variable) == 0 ) {
 						stack_add( parser->program, dat.contents, dat.type, dat.link);
-						stacksize_inc( parser, 1);
+						if( dat.link == DATA_CONTENT_LINK )
+							stacksize_inc( parser, dat.contents.prog->stacksize);
+						else
+							stacksize_inc( parser, 1);
 						
 						parser->last_token = parser->program->top;
 					}
@@ -486,7 +490,8 @@ parse_expression( char *string, program_t *program, int *stacksize, uint16_t all
 	else {
 		*stacksize = (parser->needed_stacksize > *stacksize) ? parser->needed_stacksize
 		                                                     : *stacksize;
-		program->code = parser_finalize( parser);
+		program->stacksize = parser->needed_stacksize;
+		program->code      = parser_finalize( parser);
 	}
 	
 	return 0;
